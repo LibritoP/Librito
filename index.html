@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Libritos - Inicio de Sesión / Dashboard</title>
+  <link rel="stylesheet" href="proyecto.css">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+<body class="theme-light">
+
+  <!-- BURBUJA FLOTANTE PARA CAMBIAR TEMA -->
+  <button id="theme-toggle" class="theme-bubble" onclick="toggleTheme()" title="Cambiar tema">
+    <i id="theme-icon" class="ri-moon-fill"></i>
+  </button>
+
+  <!-- ========================================================================= -->
+  <!-- VISTA 1: INICIO DE SESIÓN / REGISTRO                                     -->
+  <!-- ========================================================================= -->
+  <div id="auth-view" class="login-wrapper">
+  <div class="login-card">
+    
+    <!-- Pestañas para cambiar entre Login y Registro -->
+    <div class="auth-tabs">
+      <button type="button" id="tab-login" class="tab-btn active" onclick="setAuthMode('login')">INICIO DE SESIÓN</button>
+      <button type="button" id="tab-register" class="tab-btn" onclick="setAuthMode('register')">REGISTRARSE</button>
+    </div>
+
+    <div class="logo-container">
+      <img src="libritol.png" alt="Logo Libritos" id="app-logo">
+    </div>
+
+    <form id="login-form" onsubmit="handleSubmit(event)">
+      
+      <!-- CAMPO NOMBRE DE USUARIO (Solo visible en Registro) -->
+      <div class="form-group" id="group-username" style="display: none;">
+        <label for="user-name">NOMBRE DE USUARIO</label>
+        <input type="text" id="user-name" autocomplete="off" placeholder="Ej: JuanPerez">
+      </div>
+
+      <!-- CAMPO GMAIL / CORREO -->
+      <div class="form-group">
+        <label for="user-email" id="label-email">GMAIL / CORREO ELECTRÓNICO</label>
+        <input type="email" id="user-email" autocomplete="off" placeholder="correo@gmail.com">
+      </div>
+
+      <!-- CAMPO CONTRASEÑA -->
+      <div class="form-group">
+        <label for="user-password">CONTRASEÑA</label>
+        <input type="password" id="user-password" placeholder="••••••••">
+      </div>
+
+      <div id="message-box" class="message-box"></div>
+
+      <button type="submit" id="btn-submit" class="btn btn-primary">
+        INGRESAR
+      </button>
+
+      <div class="divider">
+        <span>O</span>
+      </div>
+
+      <!-- Opción de Google servirá para ambos casos -->
+      <button type="button" class="btn btn-google" onclick="handleGoogleLogin()">
+        <i class="ri-google-fill"></i> CONTINUAR CON GOOGLE
+      </button>
+    </form>
+  </div>
+</div>
+ <!-- Hasta aca, el inicio de sesion esta completada, lo unico que faltaria es lo de google -->
+
+
+
+  <script src="proyecto.js"></script>
+</body>
+</html>
