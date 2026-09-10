@@ -45,7 +45,7 @@ function setAuthMode(mode) {
   }
 }
 
-// [ERROR CORREGIDO #3]: Se reemplazó el setTimeout por autenticación real de correo y contraseña
+// PROCESO DE REGISTRO E INICIO CON EMAIL EN FIREBASE
 async function handleSubmit(event) {
   event.preventDefault();
 
@@ -54,12 +54,13 @@ async function handleSubmit(event) {
   const username = document.getElementById('user-name').value.trim();
 
   if (!email || !password) {
-    showMessage('Por favor completa el correo y la contraseña.', 'error');
+    showMessage('Por favor completa los campos.', 'error');
     return;
   }
 
   if (currentMode === 'register') {
     try {
+      // Envía datos reales a la base de Firebase
       const userCredential = await window.createUserWithEmailAndPassword(window.auth, email, password);
       const user = userCredential.user;
       const profileName = username !== '' ? username : email.split('@')[0];
@@ -70,11 +71,12 @@ async function handleSubmit(event) {
       setTimeout(() => showDashboard(profileName), 1000);
 
     } catch (error) {
-      console.error("Error en registro:", error);
-      showMessage('Error al registrar la cuenta en Firebase.', 'error');
+      console.error(error);
+      showMessage('Error al crear cuenta en Firebase.', 'error');
     }
   } else {
     try {
+      // Autentica usuario real con Firebase
       const userCredential = await window.signInWithEmailAndPassword(window.auth, email, password);
       const user = userCredential.user;
       const profileName = user.displayName || email.split('@')[0];
@@ -83,26 +85,40 @@ async function handleSubmit(event) {
       setTimeout(() => showDashboard(profileName), 1000);
 
     } catch (error) {
-      console.error("Error en inicio de sesión:", error);
+      console.error(error);
       showMessage('Correo o contraseña incorrectos.', 'error');
     }
   }
 }
 
-// [ERROR CORREGIDO #4]: Se eliminó el texto "[MODIFICAR FUTURO]" y se activó la ventana emergente de Google
 async function handleGoogleLogin() {
   try {
+    // 1. Prepara el proveedor de autenticación de Google
     const provider = new window.GoogleAuthProvider();
+
+    // 2. ABRE LA VENTANA EMERGENTE de Google para elegir la cuenta
     const result = await window.signInWithPopup(window.auth, provider);
+
+    // 3. Una vez elegida la cuenta, obtiene los datos reales de Google
     const user = result.user;
     const displayName = user.displayName || user.email.split('@')[0];
 
     showMessage(`¡Sesión iniciada con Google! Bienvenido/a, ${displayName}`, 'success');
-    setTimeout(() => showDashboard(displayName), 1000);
+
+    // 4. Te redirige al Dashboard con tu nombre real de Google
+    setTimeout(() => {
+      showDashboard(displayName);
+    }, 1000);
 
   } catch (error) {
-    console.error("Error al iniciar con Google:", error);
-    showMessage('No se pudo conectar con la cuenta de Google.', 'error');
+    console.error("Error al autenticar con Google:", error);
+    
+    // Si el usuario cierra el cartel o no autoriza la cuenta
+    if (error.code === 'auth/popup-closed-by-user') {
+      showMessage('Cancelaste la ventana de inicio de sesión de Google.', 'error');
+    } else {
+      showMessage('No se pudo conectar con la cuenta de Google.', 'error');
+    }
   }
 }
 
