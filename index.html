@@ -3,15 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Libritos - Inicio de Sesión / Dashboard</title>
+  <title>Librito</title>
   <link rel="stylesheet" href="proyecto.css">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 </head>
 <body class="theme-light">
 
+
   <button id="theme-toggle" class="theme-bubble" onclick="toggleTheme()" title="Cambiar tema">
     <i id="theme-icon" class="ri-moon-fill"></i>
   </button>
+
 
   <div id="auth-view" class="login-wrapper">
     <div class="login-card">
@@ -20,9 +22,11 @@
         <button type="button" id="tab-register" class="tab-btn" onclick="setAuthMode('register')">REGISTRARSE</button>
       </div>
 
+
       <div class="logo-container">
         <img src="libritol.png" alt="Logo Libritos" id="app-logo">
       </div>
+
 
       <form id="login-form" onsubmit="handleSubmit(event)">
         <div class="form-group" id="group-username" style="display: none;">
@@ -30,25 +34,31 @@
           <input type="text" id="user-name" autocomplete="off" placeholder="Ej: JuanPerez">
         </div>
 
+
         <div class="form-group">
           <label for="user-email" id="label-email">GMAIL / CORREO ELECTRÓNICO</label>
           <input type="email" id="user-email" autocomplete="off" placeholder="correo@gmail.com">
         </div>
+
 
         <div class="form-group">
           <label for="user-password">CONTRASEÑA</label>
           <input type="password" id="user-password" placeholder="••••••••">
         </div>
 
+
         <div id="message-box" class="message-box"></div>
+
 
         <button type="submit" id="btn-submit" class="btn btn-primary">
           INGRESAR
         </button>
 
+
         <div class="divider">
           <span>O</span>
         </div>
+
 
         <button type="button" class="btn btn-google" onclick="handleGoogleLogin()">
           <i class="ri-google-fill"></i> CONTINUAR CON GOOGLE
@@ -57,20 +67,24 @@
     </div>
   </div>
 
+
   <!-- [ERROR CORREGIDO #1]: Se agregó la vista del Dashboard que le faltaba a tu HTML -->
+
+
 
 
   <!-- CONEXIÓN REAL CON FIREBASE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-    import { 
-      getAuth, 
-      GoogleAuthProvider, 
-      signInWithPopup, 
-      createUserWithEmailAndPassword, 
-      signInWithEmailAndPassword, 
-      updateProfile 
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      updateProfile
     } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
 
     const firebaseConfig = {
       apiKey: "AIzaSyB-FmQQgLnpGHbm7U9MOgvDhjpF3pBBbnQ",
@@ -81,8 +95,10 @@
       appId: "1:748055377850:web:6234b12fffc85b7fdc8f83"
     };
 
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+
 
     // Compartimos la conexión con proyecto.js
     window.auth = auth;
@@ -92,8 +108,103 @@
     window.signInWithEmailAndPassword = signInWithEmailAndPassword;
     window.updateProfile = updateProfile;
   </script>
-  
+
+
+  <!-- HASTA ACA TODO BIEN PARA INICIAR SESION) -->
+
+
+<body class="theme-light">
+
+
+
+
+
+
+  <!-- VISTA 2: ONBOARDING (Pegalo justo acá en el medio) -->
+  <!-- VISTA INTERMEDIA: CONFIGURACIÓN DE PERFIL (ONBOARDING) -->
+<div id="profile-setup-view" class="setup-container" style="display: none;">
+  <div class="setup-card">
+    <h2>¡Bienvenido/a a Libritos! 👋</h2>
+    <p class="setup-subtitle">Configurá tu perfil para empezar</p>
+
+
+    <form id="profile-setup-form" onsubmit="guardarPerfilInicial(event)">
+     
+      <!-- 1. Rol inicial -->
+      <div class="setup-group">
+        <label>¿Cuál es tu objetivo principal hoy? <small>(Podés cambiarlo cuando quieras)</small></label>
+        <div class="role-selector">
+          <label><input type="radio" name="rol" value="ayudar" checked> Quiero ayudar a otros</label>
+          <label><input type="radio" name="rol" value="pedido"> Necesito ayuda escolar</label>
+        </div>
+      </div>
+
+
+      <!-- 2. Año escolar y Especialidad -->
+      <div class="setup-group">
+        <label for="setup-anio">¿En qué año estás?</label>
+        <select id="setup-anio" onchange="evaluarAnioEspecialidad(this.value)" required>
+          <option value="">Seleccionar año...</option>
+          <option value="1">1.º Año</option>
+          <option value="2">2.º Año</option>
+          <option value="3">3.º Año</option>
+          <option value="4">4.º Año</option>
+          <option value="5">5.º Año</option>
+          <option value="6">6.º Año</option>
+        </select>
+      </div>
+
+
+      <!-- Especialidad (Oculta hasta seleccionar 4°, 5° o 6°) -->
+      <div class="setup-group" id="group-especialidad" style="display: none;">
+        <label for="setup-especialidad">Elegí tu especialidad:</label>
+        <select id="setup-especialidad" onchange="cargarMateriasPorEspecialidad(this.value)">
+          <option value="">Seleccionar especialidad...</option>
+          <option value="computacion">Computación</option>
+          <option value="automotor">Automotor</option>
+        </select>
+      </div>
+
+
+      <!-- 3. Materias que dominás (Mínimo 3) -->
+      <div class="setup-group">
+        <label>Materias que dominás (Elegí al menos 3):</label>
+        <div id="container-materias-buenas" class="checkbox-grid">
+          <!-- Se cargan dinámicamente según el año/especialidad -->
+          <p class="text-muted">Seleccioná tu año/especialidad primero.</p>
+        </div>
+        <textarea id="desc-buenas" placeholder="Breve descripción de por qué sos bueno/a en estas materias..." rows="2" required></textarea>
+      </div>
+
+
+      <!-- 4. Materias que te van mal (Mínimo 3) -->
+      <div class="setup-group">
+        <label>Materias que te cuestan o necesitás ayuda (Elegí al menos 3):</label>
+        <div id="container-materias-malas" class="checkbox-grid">
+          <!-- Se cargan dinámicamente -->
+          <p class="text-muted">Seleccioná tu año/especialidad primero.</p>
+        </div>
+        <textarea id="desc-malas" placeholder="Breve descripción de qué te cuesta más de estas materias..." rows="2" required></textarea>
+      </div>
+
+
+      <button type="submit" class="btn btn-primary">FINALIZAR</button>
+    </form>
+  </div>
+</div>
+
+
+  <!-- VISTA 3: DASHBOARD -->
+  <div id="dashboard-view" class="dashboard-wrapper" style="display: none;"> ... </div>
+
+
+</body>
+
+
+
 
   <script src="proyecto.js"></script>
 </body>
 </html>
+
+
