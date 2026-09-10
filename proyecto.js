@@ -1,11 +1,8 @@
-// Rutas de imágenes del logo
 const LOGO_DIA = 'libritol.png';
 const LOGO_NOCHE = 'libritos1.png';
 
-// Estado actual del formulario ('login' o 'register')
 let currentMode = 'login';
 
-// Función para alternar el Tema y la Imagen
 function toggleTheme() {
   const body = document.body;
   const themeIcon = document.getElementById('theme-icon');
@@ -25,9 +22,6 @@ function toggleTheme() {
   }
 }
 
-// =============================================================================
-// CAMBIO INTERACTIVO ENTRE LOGIN Y REGISTRO
-// =============================================================================
 function setAuthMode(mode) {
   currentMode = mode;
   const groupUsername = document.getElementById('group-username');
@@ -36,7 +30,6 @@ function setAuthMode(mode) {
   const tabRegister = document.getElementById('tab-register');
   const msgBox = document.getElementById('message-box');
 
-  // Ocultar mensajes previos
   msgBox.style.display = 'none';
 
   if (mode === 'register') {
@@ -52,60 +45,76 @@ function setAuthMode(mode) {
   }
 }
 
-// =============================================================================
-// LÓGICA DE PROCESAMIENTO DE FORMULARIO
-// =============================================================================
-function handleSubmit(event) {
+// [ERROR CORREGIDO #3]: Se reemplazó el setTimeout por autenticación real de correo y contraseña
+async function handleSubmit(event) {
   event.preventDefault();
 
   const email = document.getElementById('user-email').value.trim();
   const password = document.getElementById('user-password').value.trim();
   const username = document.getElementById('user-name').value.trim();
 
-  let profileName = '';
-
-  if (currentMode === 'register') {
-    // Si se registra, el nombre de usuario ingresado será la referencia del perfil
-    profileName = username !== '' ? username : (email ? email.split('@')[0] : 'Usuario');
-    showMessage(`¡Cuenta creada con éxito! Bienvenido, ${profileName}...`, 'success');
-  } else {
-    // Si es inicio de sesión, usa el correo/nombre si existe
-    profileName = email ? email.split('@')[0] : 'Usuario';
-    showMessage(`¡Inicio de sesión exitoso! Cargando panel de ${profileName}...`, 'success');
+  if (!email || !password) {
+    showMessage('Por favor completa el correo y la contraseña.', 'error');
+    return;
   }
 
-  // Transición provisoria hacia el Dashboard pasando el nombre de usuario referente
-  setTimeout(() => {
-    showDashboard(profileName);
-  }, 1000);
+  if (currentMode === 'register') {
+    try {
+      const userCredential = await window.createUserWithEmailAndPassword(window.auth, email, password);
+      const user = userCredential.user;
+      const profileName = username !== '' ? username : email.split('@')[0];
+
+      await window.updateProfile(user, { displayName: profileName });
+
+      showMessage(`¡Cuenta creada con éxito! Bienvenido, ${profileName}`, 'success');
+      setTimeout(() => showDashboard(profileName), 1000);
+
+    } catch (error) {
+      console.error("Error en registro:", error);
+      showMessage('Error al registrar la cuenta en Firebase.', 'error');
+    }
+  } else {
+    try {
+      const userCredential = await window.signInWithEmailAndPassword(window.auth, email, password);
+      const user = userCredential.user;
+      const profileName = user.displayName || email.split('@')[0];
+
+      showMessage(`¡Inicio de sesión exitoso! Bienvenido, ${profileName}`, 'success');
+      setTimeout(() => showDashboard(profileName), 1000);
+
+    } catch (error) {
+      console.error("Error en inicio de sesión:", error);
+      showMessage('Correo o contraseña incorrectos.', 'error');
+    }
+  }
 }
 
-function handleGoogleLogin() {
-  /*
-  * =========================================================================
-  * [MODIFICAR FUTURO]: INTEGRACIÓN CON GOOGLE SIGN-IN
-  * -------------------------------------------------------------------------
-  * Sirve tanto para inicio de sesión como para registro automático.
-  * =========================================================================
-  */
-  showMessage('¡Sesión con Google iniciada correctamente!', 'success');
-  setTimeout(() => {
-    showDashboard('Usuario Google');
-  }, 1000);
+// [ERROR CORREGIDO #4]: Se eliminó el texto "[MODIFICAR FUTURO]" y se activó la ventana emergente de Google
+async function handleGoogleLogin() {
+  try {
+    const provider = new window.GoogleAuthProvider();
+    const result = await window.signInWithPopup(window.auth, provider);
+    const user = result.user;
+    const displayName = user.displayName || user.email.split('@')[0];
+
+    showMessage(`¡Sesión iniciada con Google! Bienvenido/a, ${displayName}`, 'success');
+    setTimeout(() => showDashboard(displayName), 1000);
+
+  } catch (error) {
+    console.error("Error al iniciar con Google:", error);
+    showMessage('No se pudo conectar con la cuenta de Google.', 'error');
+  }
 }
 
-// Transición de vistas (Oculta Auth, muestra Dashboard)
 function showDashboard(userName) {
   document.getElementById('auth-view').style.display = 'none';
   document.getElementById('dashboard-view').style.display = 'block';
   document.getElementById('welcome-user-text').textContent = `¡Bienvenido/a, ${userName}!`;
 }
 
-// Cerrar sesión y volver al Auth
 function handleLogout() {
   document.getElementById('dashboard-view').style.display = 'none';
   document.getElementById('auth-view').style.display = 'flex';
-  
   const msgBox = document.getElementById('message-box');
   msgBox.className = 'message-box';
   msgBox.style.display = 'none';
