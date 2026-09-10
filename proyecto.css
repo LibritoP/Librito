@@ -1,332 +1,423 @@
-/* ==========================================================================
-   VARIABLES Y TEMAS
-   ========================================================================== */
-
-/* Tema Día (Blanco y Verde) */
 :root, body.theme-light {
-  --bg-page: #f4f7f5;
-  --bg-card: #ffffff;
-  --primary-color: #10b981;
-  --primary-hover: #059669;
-  --text-title: #064e3b;
-  --text-main: #1f2937;
-  --border-color: #000000;
-  --google-bg: #ffffff;
-  --google-text: #1f2937;
-  --google-hover: #ecfdf5;
-}
-
-/* Tema Noche (Negro y Amarillo) */
-body.theme-dark {
-  --bg-page: #0a0a0a;
-  --bg-card: #141414;
-  --primary-color: #f59e0b;
-  --primary-hover: #d97706;
-  --text-title: #fef3c7;
-  --text-main: #f3f4f6;
-  --border-color: #f59e0b;
-  --google-bg: #1f1f1f;
-  --google-text: #ffffff;
-  --google-hover: #2a2a2a;
-}
-
-/* ==========================================================================
-   ESTILOS GENERALES
-   ========================================================================== */
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-body {
-  background-color: var(--bg-page);
-  color: var(--text-main);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* ==========================================================================
-   BURBUJA FLOTANTE (CAMBIO DE TEMA)
-   ========================================================================== */
-
-.theme-bubble {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background-color: var(--bg-card);
-  border: 3px solid var(--border-color);
-  color: var(--primary-color);
-  font-size: 1.4rem;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease, background-color 0.3s ease;
-  z-index: 100;
-}
-
-.theme-bubble:hover {
-  transform: scale(1.1);
-}
-
-/* ==========================================================================
-   TARJETA DE LOGIN
-   ========================================================================== */
-
-.login-wrapper {
-  width: 100%;
-  max-width: 480px;
-}
-
-.login-card {
-  background-color: var(--bg-card);
-  border: 4px solid var(--border-color);
-  border-radius: 8px;
-  padding: 30px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.login-title {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--text-title);
-  text-align: center;
-  margin-bottom: 20px;
-  letter-spacing: 0.5px;
-}
-
-.logo-container {
-  width: 110px;
-  height: 100px;
-  margin-bottom: 24px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.logo-container img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-/* ==========================================================================
-   FORMULARIO Y CAMPOS
-   ========================================================================== */
-
-#login-form {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-group label {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-title);
-}
-
-.form-group input {
-  width: 100%;
-  padding: 12px;
-  font-size: 1rem;
-  border: 3px solid var(--border-color);
-  border-radius: 8px;
-  outline: none;
-  background-color: var(--bg-card);
-  color: var(--text-main);
-  transition: border-color 0.2s ease, background-color 0.3s ease;
-}
-
-.form-group input:focus {
-  border-color: var(--primary-color);
-}
-
-/* ==========================================================================
-   BOTONES Y ELEMENTOS DE ACCIÓN
-   ========================================================================== */
-
-.btn {
-  width: 100%;
-  padding: 12px;
-  font-size: 0.95rem;
-  font-weight: 800;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-}
-
-.btn-primary {
-  background-color: var(--primary-color);
-  color: #ffffff;
-  border: 3px solid var(--border-color);
-}
-
-.btn-primary:hover {
-  background-color: var(--primary-hover);
-}
-
-.btn-google {
-  background-color: var(--google-bg);
-  color: var(--google-text);
-  border: 3px solid var(--border-color);
-}
-
-.btn-google:hover {
-  background-color: var(--google-hover);
-}
-
-.divider {
-  text-align: center;
-  margin: 4px 0;
-}
-
-.divider span {
-  background-color: var(--bg-card);
-  padding: 0 8px;
-  font-size: 0.8rem;
-  font-weight: bold;
-  color: var(--text-main);
-  opacity: 0.7;
-}
-
-/* ==========================================================================
-   MENSAJES DE ERROR / ÉXITO
-   ========================================================================== */
-
-.message-box {
-  display: none;
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-align: center;
-  border: 2px solid transparent;
-}
-
-.message-box.error {
-  display: block;
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border-color: #ef4444;
-}
-
-.message-box.success {
-  display: block;
-  background-color: rgba(16, 185, 129, 0.15);
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-}
-
-/* ==========================================================================
-   DASHBOARD
-   ========================================================================== */
-
-.dashboard-wrapper {
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 15px;
-  border-bottom: 3px solid var(--border-color);
-  margin-bottom: 20px;
-}
-
-.dashboard-header h2 {
-  color: var(--text-title);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.welcome-card {
-  background-color: var(--bg-card);
-  border: 3px solid var(--border-color);
-  border-radius: 8px;
-  padding: 24px;
-  color: var(--text-main);
-}
-
-.welcome-card h3 {
-  color: var(--primary-color);
-  margin-bottom: 10px;
-}
-
-.btn-logout {
-  background-color: transparent;
-  color: var(--text-title);
-  border: 2px solid var(--border-color);
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.btn-logout:hover {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border-color: #ef4444;
-}
-/* ==========================================================================
-   PESTAÑAS DE INICIO / REGISTRO
-   ========================================================================== */
-.auth-tabs {
-  display: flex;
-  width: 100%;
-  margin-bottom: 20px;
-  border-bottom: 3px solid var(--border-color);
-  gap: 8px;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 10px 4px;
-  background: transparent;
-  border: none;
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: var(--text-main);
-  cursor: pointer;
-  opacity: 0.5;
-  transition: all 0.2s ease;
-  border-bottom: 3px solid transparent;
-  margin-bottom: -3px; /* Alineación con el borde inferior */
-}
-
-.tab-btn.active {
-  opacity: 1;
-  color: var(--primary-color);
-  border-bottom: 3px solid var(--primary-color);
-}
+    --bg-page: #f4f9f5;
+    --bg-card: #ffffff;
+    --primary-color: #006637;
+    --primary-hover: #004d29;
+    --text-title: #006637;
+    --text-main: #1f2937;
+    --border-color: #dadada;
+    --google-bg: #ffffff;
+    --google-text: #006637;
+    --google-hover: #e8f5e9;
+  }
+  
+  
+  /* Tema Noche (Negro y Amarillo) */
+  body.theme-dark {
+    --bg-page: #0a0a0a;
+    --bg-card: #141414;
+    --primary-color: #c68a00;
+    --primary-hover: #a37200;
+    --text-title: #c7aa06;
+    --text-main: #f3f4f6;
+    --border-color: #303030;
+    --google-bg: #1f1f1f;
+    --google-text: #ffd700;
+    --google-hover: #2a2a2a;
+  }
+  
+  
+  /* ==========================================================================
+     ESTILOS GENERALES
+     ========================================================================== */
+  
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  
+  
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  
+  /* ==========================================================================
+     BURBUJA FLOTANTE (CAMBIO DE TEMA)
+     ========================================================================== */
+  
+  
+  .theme-bubble {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--bg-card);
+    border: 3px solid var(--border-color);
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, background-color 0.3s ease;
+    z-index: 100;
+  }
+  
+  
+  .theme-bubble:hover {
+    transform: scale(1.1);
+  }
+  
+  
+  /* ==========================================================================
+     TARJETA DE LOGIN
+     ========================================================================== */
+  
+  
+  .login-wrapper {
+    width: 100%;
+    max-width: 480px;
+  }
+  
+  
+  .login-card {
+    background-color: var(--bg-card);
+    border: 4px solid var(--border-color);
+    border-radius: 8px;
+    padding: 30px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+  
+  
+  .login-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-title);
+    text-align: center;
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+  }
+  
+  
+  .logo-container {
+    width: 110px;
+    height: 100px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  
+  .logo-container img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  
+  
+  /* ==========================================================================
+     FORMULARIO Y CAMPOS
+     ========================================================================== */
+  
+  
+  #login-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  
+  .form-group label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-title);
+  }
+  
+  
+  .form-group input {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 3px solid var(--border-color);
+    border-radius: 8px;
+    outline: none;
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    transition: border-color 0.2s ease, background-color 0.3s ease;
+  }
+  
+  
+  .form-group input:focus {
+    border-color: var(--primary-color);
+  }
+  
+  
+  /* ==========================================================================
+     BOTONES Y ELEMENTOS DE ACCIÓN
+     ========================================================================== */
+  
+  
+  .btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  
+  .btn-primary {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: 3px solid var(--border-color);
+  }
+  
+  
+  .btn-primary:hover {
+    background-color: var(--primary-hover);
+  }
+  
+  
+  .btn-google {
+    background-color: var(--google-bg);
+    color: var(--google-text);
+    border: 3px solid var(--border-color);
+  }
+  
+  
+  .btn-google:hover {
+    background-color: var(--google-hover);
+  }
+  
+  
+  .divider {
+    text-align: center;
+    margin: 4px 0;
+  }
+  
+  
+  .divider span {
+    background-color: var(--bg-card);
+    padding: 0 8px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--text-main);
+    opacity: 0.7;
+  }
+  
+  
+  /* ==========================================================================
+     MENSAJES DE ERROR / ÉXITO
+     ========================================================================== */
+  
+  
+  .message-box {
+    display: none;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+    border: 2px solid transparent;
+  }
+  
+  
+  .message-box.error {
+    display: block;
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border-color: #ef4444;
+  }
+  
+  
+  .message-box.success {
+    display: block;
+    background-color: rgba(16, 185, 129, 0.15);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  
+  /* ==========================================================================
+     DASHBOARD
+     ========================================================================== */
+  
+  
+  .dashboard-wrapper {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 3px solid var(--border-color);
+    margin-bottom: 20px;
+  }
+  
+  
+  .dashboard-header h2 {
+    color: var(--text-title);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  
+  .welcome-card {
+    background-color: var(--bg-card);
+    border: 3px solid var(--border-color);
+    border-radius: 8px;
+    padding: 24px;
+    color: var(--text-main);
+  }
+  
+  
+  .welcome-card h3 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+  }
+  
+  
+  .btn-logout {
+    background-color: transparent;
+    color: var(--text-title);
+    border: 2px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  
+  .btn-logout:hover {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border-color: #ef4444;
+  }
+  /* ==========================================================================
+     PESTAÑAS DE INICIO / REGISTRO
+     ========================================================================== */
+  .auth-tabs {
+    display: flex;
+    width: 100%;
+    margin-bottom: 20px;
+    border-bottom: 3px solid var(--border-color);
+    gap: 8px;
+  }
+  
+  
+  .tab-btn {
+    flex: 1;
+    padding: 10px 4px;
+    background: transparent;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--text-main);
+    cursor: pointer;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -3px; /* Alineación con el borde inferior */
+  }
+  
+  
+  .tab-btn.active {
+    opacity: 1;
+    color: var(--primary-color);
+    border-bottom: 3px solid var(--primary-color);
+  }
+  
+  
+  .setup-container {
+    width: 100vw;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+    background-color: var(--bg-color);
+  }
+  
+  
+  .setup-card {
+    background-color: var(--card-bg);
+    border: 3px solid var(--border-color);
+    border-radius: 12px;
+    max-width: 650px;
+    width: 100%;
+    padding: 30px;
+    color: var(--text-color);
+  }
+  
+  
+  .setup-subtitle {
+    margin-bottom: 24px;
+    opacity: 0.8;
+  }
+  
+  
+  .setup-group {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    border: 2px solid var(--border-color);
+    padding: 10px;
+    border-radius: 6px;
+  }
+  
+  
+  .role-selector {
+    display: flex;
+    gap: 20px;
+  }
+  
