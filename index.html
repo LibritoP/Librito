@@ -58,18 +58,9 @@
   </div>
 
   <!-- [ERROR CORREGIDO #1]: Se agregó la vista del Dashboard que le faltaba a tu HTML -->
-  <div id="dashboard-view" class="dashboard-wrapper" style="display: none;">
-    <div class="dashboard-header">
-      <h2 id="welcome-user-text">¡Bienvenido/a!</h2>
-      <button class="btn-logout" onclick="handleLogout()">Cerrar Sesión</button>
-    </div>
-    <div class="welcome-card">
-      <h3>Panel de Control</h3>
-      <p>Has ingresado correctamente a tu cuenta de Libritos.</p>
-    </div>
-  </div>
 
-  <!-- [ERROR CORREGIDO #2]: Se agregaron las librerías CDN e inicialización de Firebase -->
+
+  <!-- CONEXIÓN REAL CON FIREBASE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
     import { 
@@ -93,7 +84,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // Conectamos las herramientas de Firebase con proyecto.js
+    // Compartimos la conexión con proyecto.js
     window.auth = auth;
     window.GoogleAuthProvider = GoogleAuthProvider;
     window.signInWithPopup = signInWithPopup;
