@@ -9,11 +9,9 @@
 </head>
 <body class="theme-light">
 
-
   <button id="theme-toggle" class="theme-bubble" onclick="toggleTheme()" title="Cambiar tema">
     <i id="theme-icon" class="ri-moon-fill"></i>
   </button>
-
 
   <div id="auth-view" class="login-wrapper">
     <div class="login-card">
@@ -22,11 +20,9 @@
         <button type="button" id="tab-register" class="tab-btn" onclick="setAuthMode('register')">REGISTRARSE</button>
       </div>
 
-
       <div class="logo-container">
         <img src="libritol.png" alt="Logo Libritos" id="app-logo">
       </div>
-
 
       <form id="login-form" onsubmit="handleSubmit(event)">
         <div class="form-group" id="group-username" style="display: none;">
@@ -34,31 +30,29 @@
           <input type="text" id="user-name" autocomplete="off" placeholder="Ej: JuanPerez">
         </div>
 
-
         <div class="form-group">
           <label for="user-email" id="label-email">GMAIL / CORREO ELECTRÓNICO</label>
           <input type="email" id="user-email" autocomplete="off" placeholder="correo@gmail.com">
         </div>
 
-
         <div class="form-group">
           <label for="user-password">CONTRASEÑA</label>
           <input type="password" id="user-password" placeholder="••••••••">
         </div>
+        <div class="forgot-password-container">
+         <a href="#" id="btn-olvide-password" onclick="recuperarContrasena(event)">¿Olvidaste tu contraseña?</a>
+          </div>
 
 
         <div id="message-box" class="message-box"></div>
-
 
         <button type="submit" id="btn-submit" class="btn btn-primary">
           INGRESAR
         </button>
 
-
         <div class="divider">
           <span>O</span>
         </div>
-
 
         <button type="button" class="btn btn-google" onclick="handleGoogleLogin()">
           <i class="ri-google-fill"></i> CONTINUAR CON GOOGLE
@@ -70,9 +64,6 @@
 
   <!-- [ERROR CORREGIDO #1]: Se agregó la vista del Dashboard que le faltaba a tu HTML -->
 
-
-
-
   <!-- CONEXIÓN REAL CON FIREBASE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
@@ -82,7 +73,8 @@
       signInWithPopup,
       createUserWithEmailAndPassword,
       signInWithEmailAndPassword,
-      updateProfile
+      updateProfile,
+      sendPasswordResetEmail
     } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
 
@@ -99,7 +91,6 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-
     // Compartimos la conexión con proyecto.js
     window.auth = auth;
     window.GoogleAuthProvider = GoogleAuthProvider;
@@ -107,25 +98,25 @@
     window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
     window.signInWithEmailAndPassword = signInWithEmailAndPassword;
     window.updateProfile = updateProfile;
+    window.sendPasswordResetEmail = sendPasswordResetEmail;
   </script>
+
 
 
   <!-- HASTA ACA TODO BIEN PARA INICIAR SESION) -->
 
 
-<body class="theme-light">
-
-
-
-
+  <body class="theme-light">
 
 
   <!-- VISTA 2: ONBOARDING (Pegalo justo acá en el medio) -->
   <!-- VISTA INTERMEDIA: CONFIGURACIÓN DE PERFIL (ONBOARDING) -->
-<div id="profile-setup-view" class="setup-container" style="display: none;">
+ <div id="profile-setup-view" class="setup-container" style="display: none;">
   <div class="setup-card">
     <h2>¡Bienvenido/a a Libritos! 👋</h2>
     <p class="setup-subtitle">Configurá tu perfil para empezar</p>
+
+
 
 
     <form id="profile-setup-form" onsubmit="guardarPerfilInicial(event)">
@@ -166,6 +157,8 @@
       </div>
 
 
+
+
       <!-- 3. Materias que dominás (Mínimo 3) -->
       <div class="setup-group">
         <label>Materias que dominás (Elegí al menos 3):</label>
@@ -190,21 +183,38 @@
 
       <button type="submit" class="btn btn-primary">FINALIZAR</button>
     </form>
-  </div>
-</div>
-
-
+    <div id="modal-materias-error" class="modal-overlay" style="display: none;">
+        <div class="modal-alert-card">
+          <div class="modal-icon">⚠️</div>
+          <h3>Selección incompleta</h3>
+          <p>Debés elegir <strong>al menos 2 materias</strong> que dominás y <strong>al menos 2 materias</strong> que te cuestan para poder continuar.</p>
+          <button type="button" class="btn-modal-close" onclick="cerrarModalMaterias()">Entendido</button>
+        </div>
+      </div>
   
+    </div>
+  </div>
+ </div>
+      <div id="modal-notificacion" class="modal-overlay" style="display: none;">
+      <div class="modal-box">
+        <h3 id="modal-titulo">Notificación</h3>
+        <p id="modal-mensaje">Mensaje...</p>
+        <button type="button" class="btn-primary" onclick="cerrarModalNotificacion()">Entendido</button>
+      </div>
+    </div>
 
+  <section id="dashboard-view" class="view-container" style="display: none;">
+</div>
+</section>
+<!-- hasta aca es inicio de sesion -->
+ 
 
-</body>
-
-
-
+ </body>
 
   <script src="proyecto.js"></script>
+
 </body>
-</html>
+ </html>
 
 
 
