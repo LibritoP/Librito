@@ -420,5 +420,180 @@
     display: flex;
     gap: 20px;
   }
+
+  /* VENTANA MODAL FLOTANTE */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.65);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    backdrop-filter: blur(3px);
+  }
+  
+  .modal-alert-card {
+    background-color: var(--bg-card);      /* Se adapta a Blanco en Light y Negro en Dark */
+    border: 2px solid var(--border-color);  /* Verde en Light y Dorado/Amarillo en Dark */
+    color: var(--text-main);
+    padding: 24px 28px;
+    border-radius: 14px;
+    width: 90%;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    animation: popIn 0.25s ease-out;
+  }
+  
+  .modal-icon {
+    font-size: 2.2rem;
+    margin-bottom: 8px;
+  }
+  
+  .modal-alert-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.3rem;
+    color: var(--primary-color);            /* Verde o Dorado según tema */
+  }
+  
+  .modal-alert-card p {
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin-bottom: 20px;
+    opacity: 0.9;
+  }
+  
+  .btn-modal-close {
+    width: 100%;
+    padding: 10px 16px;
+    background-color: var(--primary-color); /* Verde o Dorado */
+    color: var(--bg-card);                  /* Blanco o Negro */
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+  
+  .btn-modal-close:hover {
+    opacity: 0.9;
+  }
+  
+  /* Animación de entrada centrada */
+  @keyframes popIn {
+    from {
+      transform: scale(0.85);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Gestión de vistas */
+.view-container {
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Header */
+.dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 2px solid #333;
+}
+
+/* Layout de 2 columnas */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+/* Tarjeta Tutor */
+.card-tutor {
+  border: 2px solid #333;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-solicitud {
+  border: 2px solid #333;
+  padding: 0.6rem 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+/* Gráfico semanal */
+.chart-bars {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  height: 150px;
+}
+.chart-bars li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+.chart-bars .bar {
+  width: 100%;
+  background-color: #333;
+  border-radius: 4px 4px 0 0;
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  background-color: #ffffff;
+  border: 2px solid #333;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.modal-box h3 {
+  margin-top: 0;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.modal-box p {
+  margin: 1rem 0 1.5rem;
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
   
   
