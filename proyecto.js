@@ -2,7 +2,11 @@ const LOGO_DIA = 'libritol.png';
 const LOGO_NOCHE = 'libritos1.png';
 
 
+
+
 let currentMode = 'login';
+
+
 
 
 function toggleTheme() {
@@ -10,6 +14,8 @@ function toggleTheme() {
   const themeIcon = document.getElementById('theme-icon');
   const logoImg = document.getElementById('app-logo');
   const isDark = body.classList.contains('theme-dark');
+
+
 
 
   if (isDark) {
@@ -26,6 +32,8 @@ function toggleTheme() {
 }
 
 
+
+
 function setAuthMode(mode) {
   currentMode = mode;
   const groupUsername = document.getElementById('group-username');
@@ -35,7 +43,11 @@ function setAuthMode(mode) {
   const msgBox = document.getElementById('message-box');
 
 
+
+
   msgBox.style.display = 'none';
+
+
 
 
   if (mode === 'register') {
@@ -52,59 +64,72 @@ function setAuthMode(mode) {
 }
 
 
-// PROCESO DE REGISTRO E INICIO CON EMAIL EN FIREBASE
+
+
 async function handleSubmit(event) {
-  event.preventDefault();
-
-
-  const email = document.getElementById('user-email').value.trim();
-  const password = document.getElementById('user-password').value.trim();
-  const username = document.getElementById('user-name').value.trim();
-
-
-  if (!email || !password) {
-    showMessage('Por favor completa los campos.', 'error');
-    return;
+    event.preventDefault();
+  
+    const email = document.getElementById('user-email').value.trim();
+    const password = document.getElementById('user-password').value.trim();
+    const usernameInput = document.getElementById('user-name');
+    const username = usernameInput ? usernameInput.value.trim() : '';
+  
+    if (!email || !password) {
+      showMessage('Por favor completa los campos.', 'error');
+      return;
+    }
+  
+    if (currentMode === 'register') {
+      try {
+        // 1. Crear cuenta en Firebase
+        const userCredential = await window.createUserWithEmailAndPassword(window.auth, email, password);
+        const user = userCredential.user;
+        const profileName = username !== '' ? username : email.split('@')[0];
+  
+        await window.updateProfile(user, { displayName: profileName });
+  
+        showMessage(`¡Cuenta creada con éxito! Bienvenido, ${profileName}`, 'success');
+  
+        // Registro nuevo: pasa SIEMPRE al Onboarding para elegir materias
+        setTimeout(() => showProfileSetup(), 1000);
+  
+      } catch (error) {
+        console.error(error);
+        showMessage('Error al crear cuenta en Firebase.', 'error');
+      }
+    } else {
+      try {
+        // 2. Autenticar usuario con Firebase
+        const userCredential = await window.signInWithEmailAndPassword(window.auth, email, password);
+        const user = userCredential.user;
+        const profileName = user.displayName || email.split('@')[0];
+  
+        showMessage(`¡Inicio de sesión exitoso! Bienvenido, ${profileName}`, 'success');
+  
+        // 3. Consultar en Firestore si ya completó el perfil de materias
+        setTimeout(async () => {
+          try {
+            const userDoc = await window.getDoc(window.doc(window.db, "perfiles", user.uid));
+  
+            if (userDoc && userDoc.exists()) {
+              showDashboard(profileName); // Ya tiene materias, va al Dashboard
+            } else {
+              showProfileSetup(); // No tiene perfil cargado, va al Onboarding
+            }
+          } catch (err) {
+            console.warn("Error al consultar Firestore, derivando a Onboarding:", err);
+            showProfileSetup();
+          }
+        }, 1000);
+  
+      } catch (error) {
+        console.error(error);
+        showMessage('Correo o contraseña incorrectos.', 'error');
+      }
+    }
   }
 
 
-  if (currentMode === 'register') {
-    try {
-      // Envía datos reales a la base de Firebase
-      const userCredential = await window.createUserWithEmailAndPassword(window.auth, email, password);
-      const user = userCredential.user;
-      const profileName = username !== '' ? username : email.split('@')[0];
-
-
-      await window.updateProfile(user, { displayName: profileName });
-
-
-      showMessage(`¡Cuenta creada con éxito! Bienvenido, ${profileName}`, 'success');
-      setTimeout(() => showDashboard(profileName), 1000);
-
-
-    } catch (error) {
-      console.error(error);
-      showMessage('Error al crear cuenta en Firebase.', 'error');
-    }
-  } else {
-    try {
-      // Autentica usuario real con Firebase
-      const userCredential = await window.signInWithEmailAndPassword(window.auth, email, password);
-      const user = userCredential.user;
-      const profileName = user.displayName || email.split('@')[0];
-
-
-      showMessage(`¡Inicio de sesión exitoso! Bienvenido, ${profileName}`, 'success');
-      setTimeout(() => showDashboard(profileName), 1000);
-
-
-    } catch (error) {
-      console.error(error);
-      showMessage('Correo o contraseña incorrectos.', 'error');
-    }
-  }
-}
 
 
 async function handleGoogleLogin() {
@@ -113,8 +138,12 @@ async function handleGoogleLogin() {
     const provider = new window.GoogleAuthProvider();
 
 
+
+
     // 2. ABRE LA VENTANA EMERGENTE de Google para elegir la cuenta
     const result = await window.signInWithPopup(window.auth, provider);
+
+
 
 
     // 3. Una vez elegida la cuenta, obtiene los datos reales de Google
@@ -122,13 +151,19 @@ async function handleGoogleLogin() {
     const displayName = user.displayName || user.email.split('@')[0];
 
 
+
+
     showMessage(`¡Sesión iniciada con Google! Bienvenido/a, ${displayName}`, 'success');
+
+
 
 
     // 4. Te redirige al Dashboard con tu nombre real de Google
     setTimeout(() => {
       showProfileSetup();
     }, 1000);
+
+
 
 
   } catch (error) {
@@ -144,11 +179,15 @@ async function handleGoogleLogin() {
 }
 
 
+
+
 function showProfileSetup() {
   document.getElementById('auth-view').style.display = 'none';
   document.getElementById('dashboard-view').style.display = 'none';
   document.getElementById('profile-setup-view').style.display = 'flex';
 }
+
+
 
 
 function handleLogout() {
@@ -160,12 +199,16 @@ function handleLogout() {
 }
 
 
+
+
 function showMessage(text, type) {
   const msgBox = document.getElementById('message-box');
   msgBox.textContent = text;
   msgBox.className = `message-box ${type}`;
   msgBox.style.display = 'block';
 }
+
+
 
 
 // LISTAS DE MATERIAS
@@ -176,11 +219,15 @@ const MATERIAS_COMPUTACION = [
 ];
 
 
+
+
 const MATERIAS_AUTOMOTOR = [
   "Mec. y resistiv.", "Matematica", "Ciudadana",
   "Mecanismo", "Lengua y Lit.", "neumatica",
   "Electricidad", "Alineacion", "Balanceo", "Inyeccion",  "Estatica", "Ingles"
 ];
+
+
 
 
 const MATERIAS_GENERALES = [
@@ -189,10 +236,14 @@ const MATERIAS_GENERALES = [
 ];
 
 
+
+
 // Mostrar/Ocultar Especialidad según el Año
 function evaluarAnioEspecialidad(anio) {
   const groupEsp = document.getElementById('group-especialidad');
   const anioNum = parseInt(anio, 10);
+
+
 
 
   if (anioNum >= 4) {
@@ -207,6 +258,8 @@ function evaluarAnioEspecialidad(anio) {
 }
 
 
+
+
 function cargarMateriasPorEspecialidad(esp) {
   if (esp === 'computacion') {
     renderizarCheckboxesMaterias(MATERIAS_COMPUTACION);
@@ -218,10 +271,14 @@ function cargarMateriasPorEspecialidad(esp) {
 }
 
 
+
+
 // Crear los checkboxes para seleccionar materias
 function renderizarCheckboxesMaterias(lista) {
   const contBuenas = document.getElementById('container-materias-buenas');
   const contMalas = document.getElementById('container-materias-malas');
+
+
 
 
   if (lista.length === 0) {
@@ -231,8 +288,12 @@ function renderizarCheckboxesMaterias(lista) {
   }
 
 
+
+
   let htmlBuenas = '';
   let htmlMalas = '';
+
+
 
 
   lista.forEach((mat, idx) => {
@@ -241,9 +302,13 @@ function renderizarCheckboxesMaterias(lista) {
   });
 
 
+
+
   contBuenas.innerHTML = htmlBuenas;
   contMalas.innerHTML = htmlMalas;
 }
+
+
 
 
 // Modificar la función tras iniciar sesión para mandar al Onboarding primero
@@ -253,28 +318,88 @@ function showProfileSetup() {
 }
 
 
-// Validar y Guardar Perfil (Valida mínimo 3 materias)
-async function guardarPerfilInicial(event) {
-  event.preventDefault();
 
+function mostrarModalMaterias() {
+    const modal = document.getElementById('modal-materias-error');
+    if (modal) modal.style.display = 'flex';
+    }
+  
+   function cerrarModalMaterias() {
+    const modal = document.getElementById('modal-materias-error');
+    if (modal) modal.style.display = 'none';
+   }
+  
+   window.mostrarModalMaterias = mostrarModalMaterias;
+   window.cerrarModalMaterias = cerrarModalMaterias;
 
-  const buenasChecked = document.querySelectorAll('input[name="mat_buena"]:checked');
-  const malasChecked = document.querySelectorAll('input[name="mat_mala"]:checked');
-
-
-  if (buenasChecked.length < 3) {
-    alert("Por favor seleccioná al menos 3 materias que dominás.");
-    return;
-  }
-
-
-  if (malasChecked.length < 3) {
-    alert("Por favor seleccioná al menos 3 materias en las que necesites ayuda.");
-    return;
-  }
-
-
-  // Guardar en Firestore (Opcional si querés persistirlo)
+   async function guardarPerfilInicial(event) {
+    if (event) event.preventDefault();
+  
+    // 1. Obtener los checkboxes seleccionados
+    const buenasChecked = document.querySelectorAll('input[name="mat_buena"]:checked');
+    const malasChecked = document.querySelectorAll('input[name="mat_mala"]:checked');
+  
+    // 2. Validar mínimo 2 materias por grupo
+    if (buenasChecked.length < 2 || malasChecked.length < 2) {
+      if (typeof mostrarModalMaterias === 'function') {
+        mostrarModalMaterias();
+      }
+      return;
+    }
+  
+    // Cerrar el modal flotante si estaba abierto
+    if (typeof cerrarModalMaterias === 'function') {
+      cerrarModalMaterias();
+    }
+  
+    // 3. Obtener materias y datos del perfil
+    const materiasFuertes = Array.from(buenasChecked).map(cb => cb.value);
+    const materiasDebiles = Array.from(malasChecked).map(cb => cb.value);
+  
+    const anio = document.getElementById('setup-anio')?.value || '';
+    const especialidad = document.getElementById('setup-especialidad')?.value || 'General';
+  
+    try {
+      // Detectar usuario autenticado
+      const user = window.auth?.currentUser || (typeof firebase !== 'undefined' ? firebase.auth().currentUser : null);
+  
+      if (user && window.db) {
+        // Guardar en Firestore con Modular SDK expuesto en window
+        const docRef = window.doc(window.db, "perfiles", user.uid);
+        await window.setDoc(docRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || user.email.split('@')[0],
+          anio: anio,
+          especialidad: especialidad,
+          materiasFuertes: materiasFuertes,
+          materiasDebiles: materiasDebiles,
+          puntos: 100,
+          creadoEn: new Date()
+        });
+  
+        console.log("Perfil guardado con éxito en Firestore.");
+      }
+    } catch (error) {
+      console.error("Error al guardar en Firestore:", error);
+    }
+  
+    // 4. Cambiar vistas de forma limpia
+    const profileSetupView = document.getElementById('profile-setup-view');
+    if (profileSetupView) {
+      profileSetupView.style.display = 'none';
+    }
+  
+    // Cambiar al Dashboard reconociendo cualquier función de navegación existente
+    if (typeof showDashboard === 'function') {
+      showDashboard("Usuario");
+    } else if (typeof mostrarDashboard === 'function') {
+      mostrarDashboard();
+    } else {
+      const dashboardView = document.getElementById('dashboard-view');
+      if (dashboardView) dashboardView.style.display = 'flex';
+    }
+      // Guardar en Firestore (Opcional si querés persistirlo)
   const user = window.auth.currentUser;
   if (user) {
     try {
@@ -291,8 +416,96 @@ async function guardarPerfilInicial(event) {
     } catch (e) { console.error(e); }
   }
 
-
-  // Pasar finalmente al Dashboard
-  document.getElementById('profile-setup-view').style.display = 'none';
-  showDashboard(user ? (user.displayName || user.email) : 'Usuario');
 }
+
+// Función universal para cambiar de vista limpia
+function mostrarVista(idVista) {
+  // 1. Ocultar todas las pantallas activas
+  const VISTAS = ['auth-view', 'profile-setup-view', 'dashboard-view'];
+  VISTAS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  // 2. Mostrar únicamente la vista solicitada
+  const vistaTarget = document.getElementById(idVista);
+  if (vistaTarget) {
+    vistaTarget.style.display = idVista === 'auth-view' ? 'flex' : 'block';
+  }
+}
+
+// Reemplazo para la navegación al Dashboard
+function showDashboard(nombreUsuario) {
+  mostrarVista('dashboard-view');
+  
+  // Cargar datos en la interfaz
+  const pnts = document.getElementById('user-points');
+  if (pnts) pnts.textContent = "100";
+}
+
+// 1. Funciones del Modal Personalizado
+function mostrarModalNotificacion(titulo, mensaje) {
+  const modal = document.getElementById('modal-notificacion');
+  const txtTitulo = document.getElementById('modal-titulo');
+  const txtMensaje = document.getElementById('modal-mensaje');
+
+  if (modal && txtTitulo && txtMensaje) {
+    txtTitulo.textContent = titulo;
+    txtMensaje.textContent = mensaje;
+    modal.style.display = 'flex';
+  }
+}
+
+function cerrarModalNotificacion() {
+  const modal = document.getElementById('modal-notificacion');
+  if (modal) modal.style.display = 'none';
+}
+
+// 2. Función de Recuperación de Contraseña
+async function recuperarContrasena(event) {
+  if (event) event.preventDefault();
+
+  const emailInput = document.getElementById('user-email');
+  const email = emailInput ? emailInput.value.trim() : '';
+
+  if (!email) {
+    mostrarModalNotificacion(
+      "Campo incompleto", 
+      "Por favor, escribí tu correo electrónico en el campo correspondiente para enviarte el enlace."
+    );
+    return;
+  }
+
+  try {
+    if (window.auth && window.sendPasswordResetEmail) {
+      await window.sendPasswordResetEmail(window.auth, email);
+      mostrarModalNotificacion(
+        "¡Correo enviado!", 
+        `Te enviamos un enlace a ${email} para restablecer tu contraseña. Revisá tu bandeja de entrada o spam.`
+      );
+    } else if (typeof firebase !== 'undefined' && firebase.auth) {
+      await firebase.auth().sendPasswordResetEmail(email);
+      mostrarModalNotificacion(
+        "¡Correo enviado!", 
+        `Te enviamos un enlace a ${email} para restablecer tu contraseña.`
+      );
+    } else {
+      throw new Error("El módulo de autenticación no está disponible.");
+    }
+  } catch (error) {
+    console.error("Error al enviar correo de recuperación:", error);
+
+    if (error.code === 'auth/user-not-found') {
+      mostrarModalNotificacion("Usuario no encontrado", "No existe ninguna cuenta registrada con este correo.");
+    } else if (error.code === 'auth/invalid-email') {
+      mostrarModalNotificacion("Correo inválido", "El correo ingresado no tiene un formato válido.");
+    } else {
+      mostrarModalNotificacion("Error", "Ocurrió un error al intentar enviar el correo. Intentalo de nuevo.");
+    }
+  }
+}
+
+// 3. Exponer funciones globalmente
+window.mostrarModalNotificacion = mostrarModalNotificacion;
+window.cerrarModalNotificacion = cerrarModalNotificacion;
+window.recuperarContrasena = recuperarContrasena;
