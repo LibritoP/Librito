@@ -32,12 +32,12 @@
 
         <div class="form-group">
           <label for="user-email" id="label-email">GMAIL / CORREO ELECTRÓNICO</label>
-          <input type="email" id="user-email" autocomplete="off" placeholder="correo@gmail.com">
+          <input type="email" id="user-email" autocomplete="email" placeholder="correo@gmail.com">
         </div>
 
         <div class="form-group">
           <label for="user-password">CONTRASEÑA</label>
-          <input type="password" id="user-password" placeholder="••••••••">
+          <input type="password" id="user-password" autocomplete="current-password" placeholder="••••••••">
         </div>
         <div class="forgot-password-container">
          <a href="#" id="btn-olvide-password" onclick="recuperarContrasena(event)">¿Olvidaste tu contraseña?</a>
@@ -66,39 +66,61 @@
 
   <!-- CONEXIÓN REAL CON FIREBASE -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-    import {
-      getAuth,
-      GoogleAuthProvider,
-      signInWithPopup,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-      updateProfile,
-      sendPasswordResetEmail
-    } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import { 
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  sendPasswordResetEmail,
+  sendEmailVerification,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
 
+// 1. AGREGAMOS LA IMPORTACIÓN DE FIRESTORE CON LA MISMA VERSIÓN (12.18.0)
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  collection,
+  getDoc,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB-FmQQgLnpGHbm7U9MOgvDhjpF3pBBbnQ",
-      authDomain: "librito-proyecto.firebaseapp.com",
-      projectId: "librito-proyecto",
-      storageBucket: "librito-proyecto.firebasestorage.app",
-      messagingSenderId: "748055377850",
-      appId: "1:748055377850:web:6234b12fffc85b7fdc8f83"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyB-FmQQgLnpGHbm7U9MOgvDhjpF3pBBbnQ",
+  authDomain: "librito-proyecto.firebaseapp.com",
+  projectId: "librito-proyecto",
+  storageBucket: "librito-proyecto.firebasestorage.app",
+  messagingSenderId: "748055377850",
+  appId: "1:748055377850:web:6234b12fffc85b7fdc8f83"
+};
 
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+// 2. INICIALIZAMOS LA BASE DE DATOS FIRESTORE
+const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+// Compartimos la conexión con proyecto.js
+window.auth = auth;
+window.GoogleAuthProvider = GoogleAuthProvider;
+window.signInWithPopup = signInWithPopup;
+window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+window.updateProfile = updateProfile;
+window.sendPasswordResetEmail = sendPasswordResetEmail;
+window.sendEmailVerification = sendEmailVerification;
+window.signOut = signOut;
+window.collection = collection;
+window.getDocs = getDocs;
 
-    // Compartimos la conexión con proyecto.js
-    window.auth = auth;
-    window.GoogleAuthProvider = GoogleAuthProvider;
-    window.signInWithPopup = signInWithPopup;
-    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
-    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-    window.updateProfile = updateProfile;
-    window.sendPasswordResetEmail = sendPasswordResetEmail;
+// 3. EXPONEMOS FIRESTORE Y SUS FUNCIONES A WINDOW
+window.db = db;
+window.doc = doc;
+window.setDoc = setDoc;
+window.getDoc = getDoc; 
   </script>
 
 
@@ -106,7 +128,7 @@
   <!-- HASTA ACA TODO BIEN PARA INICIAR SESION) -->
 
 
-  <body class="theme-light">
+
 
 
   <!-- VISTA 2: ONBOARDING (Pegalo justo acá en el medio) -->
@@ -161,7 +183,7 @@
 
       <!-- 3. Materias que dominás (Mínimo 3) -->
       <div class="setup-group">
-        <label>Materias que dominás (Elegí al menos 3):</label>
+        <label>Materias que dominás (Elegí al menos 2):</label>
         <div id="container-materias-buenas" class="checkbox-grid">
           <!-- Se cargan dinámicamente según el año/especialidad -->
           <p class="text-muted">Seleccioná tu año/especialidad primero.</p>
@@ -172,7 +194,7 @@
 
       <!-- 4. Materias que te van mal (Mínimo 3) -->
       <div class="setup-group">
-        <label>Materias que te cuestan o necesitás ayuda (Elegí al menos 3):</label>
+        <label>Materias que te cuestan o necesitás ayuda (Elegí al menos 2):</label>
         <div id="container-materias-malas" class="checkbox-grid">
           <!-- Se cargan dinámicamente -->
           <p class="text-muted">Seleccioná tu año/especialidad primero.</p>
@@ -202,19 +224,372 @@
         <button type="button" class="btn-primary" onclick="cerrarModalNotificacion()">Entendido</button>
       </div>
     </div>
-
-  <section id="dashboard-view" class="view-container" style="display: none;">
 </div>
-</section>
-<!-- hasta aca es inicio de sesion -->
- 
+<!-- MODAL CONFIRMAR CIERRE DE SESIÓN -->
+<div id="modal-logout" class="modal-overlay" style="display: none;">
+  <div class="modal-alert-card">
+    <div class="modal-icon">🚪</div>
+    <h3>¿Cerrar sesión?</h3>
+    <p>Vas a salir de tu cuenta de Librito. Podés volver a ingresar cuando quieras.</p>
+    <div class="modal-botones">
+      <button type="button" class="btn-modal-secondary" onclick="cerrarModalLogout()">Cancelar</button>
+      <button type="button" class="btn-modal-danger" onclick="confirmarLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+</div>
 
- </body>
+<section id="dashboard-view" class="app-container" style="display: none;">
+    
+    <!-- ENCABEZADO Y MENÚ DE NAVEGACIÓN -->
+    <header class="top-header-wrapper">
+      <div class="brand-header">
+        <div class="brand-logo-title">
+  <img id="dash-logo" src="libritol.png" alt="Logo Librito" style="height: 32px; width: auto; object-fit: contain;">
+  <span>LIBRITO</span>
+</div>
+        <div class="header-actions">
+          <div class="libritos-badge">
+            Libritos: <span id="libritosCount">0</span>
+          </div>
+        </div>
+      </div>
 
+      <nav class="top-nav">
+        <button class="nav-item active" onclick="switchTab('view-menu', this)">
+          <span class="nav-icon">☰</span>
+          <span>Menú</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('view-recompensas', this)">
+          <span class="nav-icon">👀</span>
+          <span>Premios</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('view-social', this)">
+          <span class="nav-icon">👥</span>
+          <span>Social</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('view-perfil', this)">
+          <span class="nav-icon">👤</span>
+          <span>Perfil</span>
+        </button>
+      </nav>
+    </header>
+
+    <main class="main-content">
+      
+      <!-- PESTAÑA 1: MENÚ -->
+      <div id="view-menu" class="tab-content active">
+        <div class="info-card-welcome">
+          <div class="info-welcome-header">
+            <h2>📚 ¿Qué es Librito?</h2>
+            <span class="info-tag">Economía Colaborativa Escolar</span>
+          </div>
+          <p class="info-description">
+            <strong>Librito</strong> es una plataforma de apoyo escolar entre alumnos. Conecta a estudiantes que necesitan ayuda con compañeros capacitados para dar tutorías. Por cada ayuda académica prestada acumulas puntos llamados <strong>"Libritos"</strong>, los cuales puedes canjear por premios en la cantina, fotocopias y beneficios escolares.
+          </p>
+          <div class="info-steps-grid">
+            <div class="info-step">
+              <span class="step-num">1</span>
+              <div>
+                <strong>Solicita o Enseña</strong>
+                <p>Publica tus dudas o ayuda a otros en temas que domines.</p>
+              </div>
+            </div>
+            <div class="info-step">
+              <span class="step-num">2</span>
+              <div>
+                <strong>Sumá Puntos</strong>
+                <p>Cada tutoría realizada y valorada te otorga puntos.</p>
+              </div>
+            </div>
+            <div class="info-step">
+              <span class="step-num">3</span>
+              <div>
+                <strong>Canjeá Premios</strong>
+                <p>Intercambiá tus puntos acumulados por beneficios.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="menu-grid">
+          <div class="left-col" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="reputation-bar">
+              <span class="reputation-label">Reputación General:</span>
+              <div class="stars" id="starsContainer">
+                <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-title">Cantidad de puntos por ayuda</div>
+              <div class="chart-subtitle">Diario / Semanal</div>
+
+              <div class="chart-visual">
+                <div class="bar-wrapper">
+                  <span class="bar-val">0</span>
+                  <div class="bar" style="height: 0px;"></div>
+                  <span class="bar-label">Lun</span>
+                </div>
+                <div class="bar-wrapper">
+                  <span class="bar-val">0</span>
+                  <div class="bar" style="height: 0px;"></div>
+                  <span class="bar-label">Mar</span>
+                </div>
+                <div class="bar-wrapper">
+                  <span class="bar-val">0</span>
+                  <div class="bar" style="height: 0px;"></div>
+                  <span class="bar-label">Mié</span>
+                </div>
+                <div class="bar-wrapper">
+                  <span class="bar-val" id="todayVal">0</span>
+                  <div class="bar" id="todayBar" style="height: 0px;"></div>
+                  <span class="bar-label">Hoy</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="tasks-card">
+              <div class="tasks-title">Actividades del Día</div>
+              <div class="task-item">
+                <div class="task-info">
+                  <span class="task-name">Ayudar a un compañero</span>
+                  <span class="task-pts">+1500 Puntos</span>
+                </div>
+                <button class="task-btn" onclick="completeTask(this, 1500)">Realizar</button>
+              </div>
+              <div class="task-item">
+                <div class="task-info">
+                  <span class="task-name">Resolver duda en clase</span>
+                  <span class="task-pts">+1500 Puntos</span>
+                </div>
+                <button class="task-btn" onclick="completeTask(this, 1500)">Realizar</button>
+              </div>
+              <div class="task-item">
+                <div class="task-info">
+                  <span class="task-name">Compartir apunte de estudio</span>
+                  <span class="task-pts">+2000 Puntos</span>
+                </div>
+                <button class="task-btn" onclick="completeTask(this, 2000)">Realizar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="right-col" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="top-header">
+              <div class="header-box">
+                <div class="header-box-title">Rol / Curso</div>
+                <div class="header-box-value" id="roleDisplay" style="font-size: 0.8rem;">-</div>
+              </div>
+              <div class="header-box">
+                <div class="header-box-title">Cantidad de puntos</div>
+                <div class="header-box-value">🪙 <span id="totalPoints">0</span>/10k</div>
+              </div>
+            </div>
+
+            <div class="tasks-card accent-border">
+              <div class="tasks-title accent-text">⚡ Desafíos Especiales</div>
+              <div class="task-item">
+                <div class="task-info">
+                  <span class="task-name">Tutoría completa (1 hora)</span>
+                  <span class="task-pts">+2500 Puntos</span>
+                </div>
+                <button class="task-btn" onclick="completeTask(this, 2500)">Realizar</button>
+              </div>
+              <div class="task-item">
+                <div class="task-info">
+                  <span class="task-name">Subir resumen de examen</span>
+                  <span class="task-pts">+2500 Puntos</span>
+                </div>
+                <button class="task-btn" onclick="completeTask(this, 2500)">Realizar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 2: RECOMPENSAS -->
+      <div id="view-recompensas" class="tab-content">
+        <div class="section-card">
+          <h3>Catálogo de Recompensas</h3>
+          <p class="subtitle-text">Canjeá tus puntos ganados por premios financiados por la cooperadora.</p>
+
+          <div class="rewards-grid">
+            <div class="reward-item">
+              <div>
+                <strong>Descuento en Cantina</strong>
+                <div class="reward-sub">Vale por un snack o bebida en el recreo.</div>
+              </div>
+              <button class="task-btn full-width" onclick="openRewardModal('Descuento en Cantina', 2500)">2500 Pts</button>
+            </div>
+            <div class="reward-item">
+              <div>
+                <strong>Fotocopias Gratis</strong>
+                <div class="reward-sub">Cuponera x10 impresiones para material escolar.</div>
+              </div>
+              <button class="task-btn full-width" onclick="openRewardModal('Fotocopias Gratis', 1500)">1500 Pts</button>
+            </div>
+            <div class="reward-item">
+              <div>
+                <strong>Punto Extra en Trabajo</strong>
+                <div class="reward-sub">Beneficio académico para materia a elección.</div>
+              </div>
+              <button class="task-btn full-width" onclick="openRewardModal('Punto Extra en Trabajo', 5000)">5000 Pts</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 3: SOCIAL -->
+      <div id="view-social" class="tab-content">
+        <div class="section-card">
+          <h3>Comunidad de Ayudantes</h3>
+          <p class="subtitle-text">Encontrá compañeros clasificados por especialidad y puntuación.</p>
+
+          <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="Buscar por materia o nombre..." oninput="filterUsers()">
+            <div class="filters-row">
+              <select id="filterStars" class="filter-select" onchange="filterUsers()">
+                <option value="0">Cualquier Puntuación</option>
+                <option value="5">5 Estrellas General</option>
+                <option value="4">4+ Estrellas General</option>
+              </select>
+              <select id="filterYear" class="filter-select" onchange="filterUsers()">
+                <option value="all">Todos los años</option>
+                <option value="1er Año">1er Año</option>
+                <option value="2do Año">2do Año</option>
+                <option value="3er Año">3er Año</option>
+                <option value="4to Año">4to Año</option>
+                <option value="5to Año">5to Año</option>
+                <option value="6to Año">6to Año</option>
+              </select>
+              <select id="filterOrientation" class="filter-select" onchange="filterUsers()">
+                <option value="all">Todas las especialidades</option>
+                <option value="Computación">Computación</option>
+                <option value="Motores">Motores</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="usersListContainer" class="users-grid"></div>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 4: PERFIL -->
+      <div id="view-perfil" class="tab-content">
+        <div class="section-card">
+          <h3>Perfil de Usuario</h3>
+          <div class="profile-info">
+            <div class="profile-field">
+              <span class="muted-text">Usuario:</span>
+              <strong id="profileUsername">-</strong>
+            </div>
+            <div class="profile-field">
+              <span class="muted-text">Año / Especialidad:</span>
+              <strong id="profileYear">-</strong>
+            </div>
+            <div class="profile-field">
+              <span class="muted-text">Rol:</span>
+              <strong id="profileRole">-</strong>
+            </div>
+            <div class="profile-field">
+              <span class="muted-text">Disponibilidad:</span>
+              <div>
+                <select id="statusSelect" class="filter-select" onchange="toggleStatus()">
+                  <option value="online">En línea / Disponible</option>
+                  <option value="offline">Ocupado / No disponible</option>
+                </select>
+              </div>
+            </div>
+            <div class="profile-field">
+              <span class="muted-text">Estado visual:</span>
+              <strong id="profileStatusText"><span class="status-dot status-online"></span>Disponible</strong>
+            </div>
+            <div class="profile-field">
+              <span class="muted-text">Libritos Acumulados:</span>
+              <strong id="profileLibritos" class="primary-light-text">📚 0 Libritos</strong>
+            </div>
+            <div class="profile-field">
+              <span class="muted-text">Puntos Totales:</span>
+              <strong id="profilePts" class="primary-light-text">0 Pts</strong>
+            </div>
+          </div>
+
+          <div class="btn-container-top">
+            <button class="task-btn btn-danger" onclick="logout()">Cerrar Sesión</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- MODAL USUARIO SOCIAL -->
+    <div class="modal-overlay" id="userModal" style="display: none;">
+      <div class="modal-card">
+        <button class="close-btn" onclick="closeUserProfile()">✕</button>
+        <h3 id="modalUserName" class="primary-light-text">Nombre</h3>
+        <div>
+          <span class="modal-label">Curso:</span>
+          <strong id="modalUserYear" class="modal-val"></strong>
+        </div>
+        <div>
+          <span class="modal-label">Estado actual:</span>
+          <div id="modalUserStatus" class="modal-val"></div>
+        </div>
+        <div>
+          <span class="modal-label">Reputación General:</span>
+          <div id="modalUserRep" class="stars-gold"></div>
+        </div>
+        <div>
+          <strong class="modal-val">Calificación Específica por Materias:</strong>
+          <div id="modalSubjectRatings" class="subject-rating-list"></div>
+        </div>
+        <div>
+          <strong class="modal-val primary-light-text">Sabe / Fortaleza:</strong>
+          <p id="modalGoodDesc" class="modal-desc"></p>
+        </div>
+        <div>
+          <strong class="modal-val danger-light-text">Busca apoyo en:</strong>
+          <div id="modalBadTags" class="tags-container"></div>
+          <p id="modalBadDesc" class="modal-desc"></p>
+        </div>
+        <button class="task-btn full-width margin-top-sm" onclick="alert('¡Solicitud enviada a este compañero!')">Contactar Compañero</button>
+      </div>
+    </div>
+
+    <!-- MODAL CANJEAR PREMIO -->
+    <div class="modal-overlay" id="rewardModal" style="display: none;">
+      <div class="modal-card">
+        <button class="close-btn" onclick="closeRewardModal()">✕</button>
+        <h3 id="rewardModalTitle" class="primary-light-text center-text">Canjear Premio</h3>
+
+        <div id="rewardStep1">
+          <p class="reward-modal-desc">
+            ¿Deseas canjear <strong id="rewardPointsTxt" class="primary-light-text"></strong> puntos por esta recompensa?
+          </p>
+          <ul class="reward-modal-list">
+            <li>Se descontarán automáticamente de tus puntos actuales.</li>
+            <li>Obtendrás un código único para presentar.</li>
+          </ul>
+          <button class="task-btn full-width margin-top-sm" onclick="generateRewardCode()">Confirmar y Canjear</button>
+        </div>
+
+        <div id="rewardStep2" style="display: none;" class="center-text">
+          <p class="reward-modal-desc margin-top-sm">¡Canje realizado con éxito!</p>
+          <div class="code-display" id="rewardGeneratedCode">------</div>
+          <p class="reward-sub">Guardá o mostrá este código para reclamar tu premio.</p>
+        </div>
+
+        <div id="rewardStepError" style="display: none;" class="center-text">
+          <p class="error-title">¡Puntos insuficientes!</p>
+          <p class="reward-modal-desc" id="rewardErrorMsg">Necesitás X pts y tenés Y pts.</p>
+          <button class="task-btn full-width" onclick="closeRewardModal()">Entendido</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
   <script src="proyecto.js"></script>
 
 </body>
  </html>
-
-
 
