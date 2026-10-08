@@ -67,7 +67,7 @@ body.theme-dark {
 }
 
 /* ==========================================================================
-   ESTILOS GENERALES
+   ESTILOS GENERALES Y ADAPTABILIDAD PC FULL WIDTH
    ========================================================================== */
 
 * {
@@ -78,17 +78,21 @@ body.theme-dark {
   transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
-body {
+html, body {
+  width: 100%;
+  min-height: 100vh;
   background-color: var(--bg-page);
   color: var(--text-main);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
 }
 
-/* BURBUJA FLOTANTE EN POSICIÓN FIJA RIGUROSA (PARA EVITAR DESPLAZAMIENTOS) */
+body {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0;
+}
+
+/* BURBUJA FLOTANTE DE TEMA */
 .theme-bubble {
   position: fixed !important;
   top: 20px !important;
@@ -118,14 +122,32 @@ body {
   width: 100%;
 }
 
+/* UNIFICACIÓN Y COMPATIBILIDAD DE CONTENEDORES CONTRA ERRORES EN CSS/HTML */
+.container,
+.setup-container,
+.app-container {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0 auto;
+}
+
+.app-container {
+  max-width: 100%;
+  background-color: var(--card-bg);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.3);
+}
+
 /* ==========================================================================
    1. TARJETA DE LOGIN
    ========================================================================== */
 
 .login-wrapper {
   width: 100%;
-  max-width: 480px;
-  margin: auto;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
 }
 
 .login-card {
@@ -138,6 +160,7 @@ body {
   align-items: center;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   width: 100%;
+  max-width: 480px;
 }
 
 .auth-tabs {
@@ -303,15 +326,22 @@ body {
    2. CONFIGURACIÓN DE MATERIAS (ONBOARDING)
    ========================================================================== */
 
+.setup-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+}
+
 .setup-card {
   background-color: var(--bg-card);
   border: 3px solid var(--border-color);
   border-radius: 12px;
   width: 100%;
-  max-width: 650px;
-  margin: 0 auto;
+  max-width: 800px;
   padding: 30px;
   color: var(--text-main);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
 .setup-subtitle {
@@ -333,29 +363,18 @@ body {
 
 .checkbox-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 8px;
-  max-height: 180px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  max-height: 220px;
   overflow-y: auto;
   border: 2px solid var(--border-color);
-  padding: 10px;
+  padding: 12px;
   border-radius: 6px;
 }
 
 /* ==========================================================================
-   3. DASHBOARD Y NAVEGACIÓN
+   3. DASHBOARD Y NAVEGACIÓN PC
    ========================================================================== */
-
-.app-container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  background-color: var(--card-bg);
-  min-height: 100vh;
-  box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-}
 
 .top-header-wrapper {
   position: sticky;
@@ -363,6 +382,7 @@ body {
   z-index: 900;
   background-color: var(--card-bg);
   border-bottom: 1px solid var(--border);
+  width: 100%;
 }
 
 .brand-header {
@@ -371,7 +391,7 @@ body {
   align-items: center;
   background: var(--header-gradient);
   color: white;
-  padding: 1rem 2rem;
+  padding: 1rem 3rem;
 }
 
 .brand-logo-title {
@@ -386,15 +406,15 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding-right: 60px; /* Margen para no tapar la burbuja del tema */
+  padding-right: 60px;
 }
 
 .libritos-badge {
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid var(--primary-color);
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 1rem;
   border-radius: 20px;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #ffffff;
 }
@@ -402,7 +422,7 @@ body {
 .top-nav {
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  gap: 3rem;
   height: 60px;
   background-color: var(--nav-bg);
   border-top: 1px solid var(--border);
@@ -414,13 +434,13 @@ body {
   justify-content: center;
   text-decoration: none;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   gap: 0.5rem;
   border: none;
   background: none;
   cursor: pointer;
-  padding: 0 1.5rem;
+  padding: 0 2rem;
 }
 
 .nav-item.active {
@@ -433,8 +453,8 @@ body {
 }
 
 .main-content {
-  padding: 2rem;
-  flex: 1;
+  padding: 2.5rem 4rem;
+  width: 100%;
 }
 
 .tab-content {
@@ -450,10 +470,10 @@ body {
 .menu-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .menu-grid {
     grid-template-columns: 1fr;
   }
@@ -463,7 +483,7 @@ body {
   background: var(--input-bg);
   border: 1px solid var(--primary-hover);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.5rem 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -476,31 +496,31 @@ body {
 }
 
 .info-welcome-header h2 {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   color: var(--primary-color);
   font-weight: 800;
 }
 
 .info-tag {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   background: var(--tag-good-bg);
   color: var(--tag-good-text);
   border: 1px solid var(--tag-good-border);
-  padding: 0.3rem 0.7rem;
+  padding: 0.3rem 0.8rem;
   border-radius: 12px;
   font-weight: 700;
 }
 
 .info-description {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--text-dark);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .info-steps-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.2rem;
   margin-top: 0.5rem;
 }
 
@@ -509,7 +529,7 @@ body {
   align-items: flex-start;
   gap: 0.8rem;
   background: var(--card-bg);
-  padding: 0.8rem;
+  padding: 1rem;
   border-radius: 8px;
   border: 1px solid var(--border);
 }
@@ -517,13 +537,13 @@ body {
 .step-num {
   background: var(--primary-hover);
   color: white;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 800;
   flex-shrink: 0;
 }
@@ -534,13 +554,13 @@ body {
   align-items: center;
   background-color: var(--input-bg);
   border: 1px solid var(--border);
-  padding: 0.8rem 1.2rem;
+  padding: 1rem 1.5rem;
   border-radius: 12px;
 }
 
 .stars {
   color: var(--accent-yellow);
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   letter-spacing: 3px;
 }
 
@@ -566,7 +586,7 @@ body {
 }
 
 .header-box-value {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: var(--primary-color);
   margin-top: 0.3rem;
@@ -575,18 +595,18 @@ body {
 .chart-card, .tasks-card, .section-card {
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 1.5rem;
+  padding: 1.5rem 2rem;
   background: var(--card-bg);
 }
 
 .chart-title {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-dark);
 }
 
 .chart-subtitle {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
   margin-bottom: 1rem;
 }
@@ -595,7 +615,7 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
-  height: 180px;
+  height: 200px;
   padding-top: 1rem;
   border-bottom: 2px solid var(--border);
 }
@@ -610,26 +630,26 @@ body {
 }
 
 .bar {
-  width: 48px;
+  width: 56px;
   background: linear-gradient(to top, var(--primary-dark), var(--primary-color));
   border-radius: 6px 6px 0 0;
   transition: height 0.4s ease;
 }
 
 .bar-label {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-muted);
 }
 
 .bar-val {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--primary-color);
 }
 
 .tasks-title {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
   margin-bottom: 1rem;
 }
@@ -638,11 +658,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.8rem 1rem;
+  padding: 1rem 1.2rem;
   border: 1px solid var(--border);
   background-color: var(--input-bg);
   border-radius: 8px;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.8rem;
 }
 
 .task-info {
@@ -651,12 +671,12 @@ body {
 }
 
 .task-name {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
 }
 
 .task-pts {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--primary-color);
   font-weight: 700;
 }
@@ -665,7 +685,7 @@ body {
   background-color: var(--primary-color);
   color: white;
   border: 1px solid var(--border);
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.2rem;
   border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 700;
@@ -684,14 +704,14 @@ body {
 }
 
 /* ==========================================================================
-   ESTILOS DE RECOMPENSAS Y TARJETAS DÁNAMICAS CON IMAGEN
+   ESTILOS DE RECOMPENSAS Y TARJETAS DINÁMICAS (OPTIMIZADO PARA PC)
    ========================================================================== */
 
 .rewards-grid, .users-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.2rem;
-  margin-top: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.2rem;
 }
 
 .reward-item {
@@ -708,7 +728,7 @@ body {
 
 .reward-img-box {
   width: 100%;
-  height: 140px;
+  height: 160px;
   border-radius: 8px;
   overflow: hidden;
   background-color: var(--bg-card);
@@ -743,7 +763,7 @@ body {
 }
 
 .user-name {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -756,10 +776,10 @@ body {
 
 .search-input {
   width: 100%;
-  padding: 0.8rem;
+  padding: 0.8rem 1rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   outline: none;
   background-color: var(--input-bg);
   color: var(--text-dark);
@@ -767,12 +787,12 @@ body {
 
 .filters-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 0.8rem;
 }
 
 .filter-select {
-  padding: 0.6rem;
+  padding: 0.7rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 0.85rem;
@@ -805,7 +825,7 @@ body {
 .profile-info {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 1.5rem;
   margin-top: 1rem;
 }
 
@@ -814,12 +834,12 @@ body {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 0.6rem;
-  font-size: 0.9rem;
+  padding-bottom: 0.8rem;
+  font-size: 0.95rem;
 }
 
 .btn-container-top {
-  margin-top: 1.5rem;
+  margin-top: 2rem;
 }
 
 .btn-danger {
@@ -842,21 +862,22 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 3000;
-  backdrop-filter: blur(3px);
+  z-index: 10000;
+  backdrop-filter: blur(4px);
 }
 
-.modal-alert-card, .modal-card, .modal-box {
+.modal-alert-card, .modal-card, .modal-box, .modal-content {
   background-color: var(--bg-card);
   border: 2px solid var(--border-color);
   color: var(--text-main);
-  padding: 24px 28px;
+  padding: 28px 32px;
   border-radius: 14px;
   width: 90%;
-  max-width: 420px;
+  max-width: 480px;
   text-align: center;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
   position: relative;
+  animation: fadeInModal 0.3s ease-out forwards;
 }
 
 .modal-icon {
@@ -877,16 +898,22 @@ body {
   margin-top: 15px;
 }
 
-.close-btn {
+.close-btn, .btn-cerrar-modal {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
+  top: 12px;
+  right: 16px;
+  background: transparent;
   border: none;
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-size: 1.6rem;
+  font-weight: bold;
   cursor: pointer;
   color: var(--text-muted);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.close-btn:hover, .btn-cerrar-modal:hover {
+  color: var(--danger);
+  transform: scale(1.15);
 }
 
 .code-display {
@@ -930,127 +957,10 @@ body {
 .reward-modal-list { font-size: 0.8rem; color: var(--text-muted); padding-left: 1.2rem; margin-bottom: 1rem; text-align: left; }
 .error-title { font-size: 0.9rem; color: var(--danger); margin: 0.8rem 0; font-weight: bold; }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.65);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000; /* Asegura que quede por encima de todo */
-  backdrop-filter: blur(4px); /* Efecto desfoque de fondo */
-}
-
-/* Caja del contenido del modal */
-.modal-content {
-  background-color: #ffffff;
-  border: 2px solid #1b4d3e; /* Verde temático */
-  border-radius: 12px;
-  padding: 30px;
-  max-width: 480px;
-  width: 90%;
-  text-align: center;
-  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.3);
-  animation: fadeInModal 0.3s ease-out forwards;
-}
-
-.modal-content h3 {
-  color: #1b4d3e;
-  font-size: 1.4rem;
-  margin-bottom: 15px;
-  font-weight: 700;
-}
-
-.modal-content p {
-  color: #333333;
-  font-size: 1rem;
-  line-height: 1.5;
-  margin-bottom: 20px;
-}
-
-.modal-content strong {
-  color: #1b4d3e;
-  word-break: break-all;
-}
-
-/* Estilos para los botones del modal */
-.modal-content .btn-primary {
-  background-color: #1b4d3e;
-  color: #ffffff;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
-}
-
-.modal-content .btn-primary:hover {
-  background-color: #266b56;
-  transform: translateY(-1px);
-}
-
-.modal-content .btn-secondary {
-  background-color: transparent;
-  color: #1b4d3e;
-  border: 2px solid #1b4d3e;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.modal-content .btn-secondary:hover {
-  background-color: #1b4d3e;
-  color: #ffffff;
-}
-
-/* Animación suave de aparición */
-@keyframes fadeInModal {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-.modal-content {
-  position: relative;
-}
-
-/* Botón 'X' de cierre */
-.btn-cerrar-modal {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  background: transparent;
-  border: none;
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: #1b4d3e;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-  transition: color 0.2s ease, transform 0.2s ease;
-}
-
-.btn-cerrar-modal:hover {
-  color: #d9534f; /* Cambia a rojo suave al pasar el mouse */
-  transform: scale(1.15);
-}
-
-/* El aviso de notificación debe quedar SIEMPRE por encima del modal de verificación */
 #modal-notificacion {
   z-index: 11000;
 }
 
-/* Botones del modal de cierre de sesión */
 .modal-botones {
   display: flex;
   gap: 10px;
@@ -1085,6 +995,17 @@ body {
 
 .btn-modal-danger:hover {
   filter: brightness(0.9);
+}
+
+@keyframes fadeInModal {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
   
   
