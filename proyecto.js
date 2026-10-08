@@ -5,8 +5,8 @@ let currentMode = 'login';
 
 // ESTADO GENERAL DE LA APLICACIÓN
 let appState = {
-  points: 0,          // Arranca con 5000 pts (equivalente a 5 Libritos)
-  libritos: 0,           // 1 Librito = 1000 Puntos
+  points: 0,
+  libritos: 0,
   stars: 5,
   selectedRewardCost: 0,
   user: {
@@ -54,7 +54,7 @@ const rewardCatalog = [
   }
 ];
 
-// CONTROL STRICTO DE PROCESOS (SEPARACIÓN PANTALLAS)
+// CONTROL DE VISTAS
 function mostrarVista(idVista) {
   const vistas = ['auth-view', 'profile-setup-view', 'dashboard-view'];
   vistas.forEach(id => {
@@ -76,22 +76,21 @@ function showProfileSetup() {
   mostrarVista('profile-setup-view');
 }
 
-function showDashboard(nombreUsuario) {
+async function showDashboard(nombreUsuario) {
   mostrarVista('dashboard-view');
   if (nombreUsuario) {
     appState.user.username = nombreUsuario;
   }
   updateProfileUI();
   renderRewardsCatalog();
-  renderUsersList();
-  cargarComunidadDesdeFirestore();
+  await cargarComunidadDesdeFirestore();
 }
 
 function toggleTheme() {
   const body = document.body;
   const themeIcon = document.getElementById('theme-icon');
   const logoImg = document.getElementById('app-logo');
-  const dashLogoImg = document.getElementById('dash-logo'); // ← Se añade la referencia al logo del Dashboard
+  const dashLogoImg = document.getElementById('dash-logo');
   const isDark = body.classList.contains('theme-dark');
 
   if (isDark) {
@@ -99,13 +98,13 @@ function toggleTheme() {
     body.classList.add('theme-light');
     if (themeIcon) themeIcon.className = 'ri-moon-fill';
     if (logoImg) logoImg.src = LOGO_DIA;
-    if (dashLogoImg) dashLogoImg.src = LOGO_DIA; // ← Cambia a la imagen de día
+    if (dashLogoImg) dashLogoImg.src = LOGO_DIA;
   } else {
     body.classList.remove('theme-light');
     body.classList.add('theme-dark');
     if (themeIcon) themeIcon.className = 'ri-sun-fill';
     if (logoImg) logoImg.src = LOGO_NOCHE;
-    if (dashLogoImg) dashLogoImg.src = LOGO_NOCHE; // ← Cambia a la imagen de noche
+    if (dashLogoImg) dashLogoImg.src = LOGO_NOCHE;
   }
 }
 
@@ -132,12 +131,9 @@ function setAuthMode(mode) {
   }
 }
 
-// ==========================================
 // UTILIDADES DE AUTENTICACIÓN
-// ==========================================
 const TIMEOUT_FIRESTORE_MS = 8000;
 
-// Evita que una llamada a Firebase quede colgada para siempre ("no pasa nada")
 function conTimeout(promesa, ms, etiqueta) {
   let timer;
   const limite = new Promise((_, reject) => {
@@ -146,7 +142,6 @@ function conTimeout(promesa, ms, etiqueta) {
   return Promise.race([promesa, limite]).finally(() => clearTimeout(timer));
 }
 
-// Bloquea el botón mientras se procesa (evita doble clic y muestra actividad)
 function setCargando(cargando) {
   const btn = document.getElementById('btn-submit');
   if (!btn) return;
@@ -163,7 +158,6 @@ function firebaseListo() {
             window.signInWithEmailAndPassword && window.createUserWithEmailAndPassword);
 }
 
-// Traduce el código de error de Firebase a un mensaje que diga lo que realmente pasó
 function mensajeErrorAuth(error) {
   switch (error && error.code) {
     case 'auth/invalid-credential':
@@ -176,44 +170,18 @@ function mensajeErrorAuth(error) {
     case 'auth/user-disabled':
       return ["Cuenta deshabilitada", "Esta cuenta fue deshabilitada. Contactá a un administrador."];
     case 'auth/too-many-requests':
-      return ["Demasiados intentos", "Esperá unos minutos o restablecé tu contraseña con '¿Olvidaste tu contraseña?'."];
+      return ["Demasiados intentos", "Esperá unos minutos o restablecé tu contraseña."];
     case 'auth/network-request-failed':
       return ["Sin conexión", "No pudimos conectarnos con el servidor. Revisá tu internet e intentá de nuevo."];
     case 'auth/email-already-in-use':
       return ["Correo ya registrado", "Este correo ya tiene una cuenta. Cambiá a la pestaña 'Inicio de sesión' e ingresá."];
     case 'auth/weak-password':
       return ["Contraseña débil", "La contraseña debe tener al menos 6 caracteres."];
-    case 'auth/operation-not-allowed':
-      return ["Método no habilitado", "Este método de acceso no está habilitado en Firebase (Authentication → Sign-in method)."];
-    case 'auth/popup-blocked':
-      return ["Ventana bloqueada", "El navegador bloqueó la ventana de Google. Permití las ventanas emergentes e intentá de nuevo."];
-    case 'auth/unauthorized-domain':
-      return ["Dominio no autorizado", "Este dominio no está autorizado en Firebase (Authentication → Settings → Dominios autorizados)."];
     default:
       return ["Error inesperado", `No se pudo completar la operación (${(error && (error.code || error.message)) || 'desconocido'}).`];
   }
 }
 
-// Agrega (o reemplaza) al usuario actual en la lista de la comunidad
-function agregarUsuarioAComunidad() {
-  const u = appState.user;
-  communityUsers = communityUsers.filter(c => !c.esPropio);
-  communityUsers.unshift({
-    esPropio: true,
-    name: u.username,
-    year: u.year,
-    orientation: u.orientation,
-    status: u.status || "online",
-    stars: 5,
-    subjectRatings: { [u.goodSubjects[0] || 'General']: 5 },
-    goodSubjects: u.goodSubjects,
-    goodDesc: u.goodDesc,
-    badSubjects: u.badSubjects,
-    badDesc: u.badDesc
-  });
-}
-
-// Paso común después de autenticarse: carga el perfil guardado y decide a qué pantalla ir
 async function continuarTrasLogin(user) {
   appState.user.username = user.displayName || (user.email ? user.email.split('@')[0] : 'Usuario');
   appState.user.email = user.email || '';
@@ -223,11 +191,10 @@ async function continuarTrasLogin(user) {
     const docRef = window.doc(window.db, "perfiles", user.uid);
     docSnap = await conTimeout(window.getDoc(docRef), TIMEOUT_FIRESTORE_MS, 'leer perfil');
   } catch (error) {
-    // La sesión SÍ es válida; lo que falló es la base de datos (reglas, base sin crear o sin conexión)
     console.error("Error al leer el perfil en Firestore:", error);
     mostrarModalNotificacion(
       "Sesión iniciada",
-      "Ingresaste correctamente, pero no pudimos cargar tu perfil guardado. Revisá que Firestore esté creado y que sus reglas permitan leer 'perfiles'. Por ahora podés completar tu perfil de nuevo."
+      "Ingresaste correctamente, pero no pudimos cargar tu perfil guardado. Podés completar tu perfil ahora."
     );
     showProfileSetup();
     return;
@@ -244,8 +211,7 @@ async function continuarTrasLogin(user) {
     appState.user.goodDesc = datos.descBuenas || '';
     appState.user.badDesc = datos.descMalas || '';
 
-    agregarUsuarioAComunidad();
-    showDashboard(appState.user.username);
+    await showDashboard(appState.user.username);
   } else {
     showProfileSetup();
   }
@@ -260,7 +226,6 @@ async function registrarUsuario(email, password, username) {
     await window.updateProfile(user, { displayName: profileName });
     appState.user.username = profileName;
 
-    // Enviar correo de verificación y abrir el modal de espera
     await window.sendEmailVerification(user);
     mostrarModalVerificacion(user);
   } catch (error) {
@@ -276,14 +241,12 @@ async function iniciarSesion(email, password) {
     const userCredential = await window.signInWithEmailAndPassword(window.auth, email, password);
     user = userCredential.user;
   } catch (error) {
-    // Solo los errores de AUTENTICACIÓN llegan acá
     console.error("Error al iniciar sesión:", error);
     const [titulo, mensaje] = mensajeErrorAuth(error);
     mostrarModalNotificacion(titulo, mensaje);
     return;
   }
 
-  // Bloqueamos el paso si todavía no verificó su correo
   if (!user.emailVerified) {
     mostrarModalVerificacion(user);
     return;
@@ -346,22 +309,13 @@ async function handleGoogleLogin() {
     await continuarTrasLogin(result.user);
   } catch (error) {
     console.error("Error con Google:", error);
-    // Si cerró la ventana a propósito, no mostramos nada
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') return;
     const [titulo, mensaje] = mensajeErrorAuth(error);
     mostrarModalNotificacion(titulo, mensaje);
   }
 }
 
-function showMessage(text, type) {
-  const msgBox = document.getElementById('message-box');
-  if (!msgBox) return;
-  msgBox.textContent = text;
-  msgBox.className = `message-box ${type}`;
-  msgBox.style.display = 'block';
-}
-
-// MATERIAS Y CARGA DE DICCIONARIOS
+// MATERIAS Y ONBOARDING
 const MATERIAS_COMPUTACION = [
   "Algoritmos", "Base de Datos", "Log. computacional", "Proyecto inf.",
   "Org. computacional", "Historia", "Matemática", "Lengua y Lit.", "Inglés", "Geografía"
@@ -458,12 +412,7 @@ async function guardarPerfilInicial(event) {
   appState.user.badSubjects = Array.from(malasChecked).map(cb => cb.value);
   appState.user.goodDesc = document.getElementById('desc-buenas')?.value || 'Buenas habilidades académicas.';
   appState.user.badDesc = document.getElementById('desc-malas')?.value || 'Buscando ayuda escolar.';
-  
-  // Agregar perfil creado a la Comunidad Social
-  agregarUsuarioAComunidad();
 
-  // GUARDAR EL PERFIL EN FIRESTORE (antes no se guardaba, por eso al volver a
-  // iniciar sesión siempre te mandaba a configurar el perfil de nuevo)
   const usuarioActual = window.auth && window.auth.currentUser;
   if (usuarioActual && window.setDoc && window.db) {
     try {
@@ -482,21 +431,19 @@ async function guardarPerfilInicial(event) {
         TIMEOUT_FIRESTORE_MS,
         'guardar perfil'
       );
-    await cargarComunidadDesdeFirestore();
     } catch (error) {
       console.error("Error al guardar el perfil en Firestore:", error);
       mostrarModalNotificacion(
         "Perfil sin guardar",
-        "Tu perfil se creó, pero no pudimos guardarlo en la nube. Revisá las reglas de Firestore para la colección 'perfiles'."
+        "Tu perfil se creó pero no pudo sincronizarse en la nube."
       );
     }
   }
 
-  // PASO 2 -> PASO 3: Muestra la Interfaz Principal
-  showDashboard(appState.user.username);
+  await showDashboard(appState.user.username);
 }
 
-// RENDERIZADO DE CATÁLOGO DE RECOMPENSAS
+// CATÁLOGO DE RECOMPENSAS
 function renderRewardsCatalog() {
   const grid = document.querySelector('.rewards-grid');
   if (!grid) return;
@@ -517,7 +464,6 @@ function renderRewardsCatalog() {
   `).join('');
 }
 
-// MODAL DE CANJE CON CÓDIGO ALEATORIO
 function openRewardModal(title, costPts, costLibritos) {
   appState.selectedRewardCost = costPts;
   document.getElementById('rewardModalTitle').innerText = title;
@@ -539,7 +485,6 @@ function generateRewardCode() {
     appState.points -= appState.selectedRewardCost;
     appState.libritos = Math.floor(appState.points / 1000);
 
-    // Generación del código aleatorio único (Ejemplo: LIB-849201)
     const code = 'LIB-' + Math.floor(100000 + Math.random() * 900000);
     document.getElementById('rewardGeneratedCode').innerText = code;
 
@@ -554,7 +499,7 @@ function generateRewardCode() {
   }
 }
 
-// MODALES DE NOTIFICACIÓN
+// NOTIFICACIONES
 function mostrarModalNotificacion(titulo, mensaje) {
   const modal = document.getElementById('modal-notificacion');
   const txtTitulo = document.getElementById('modal-titulo');
@@ -593,7 +538,7 @@ async function recuperarContrasena(event) {
   }
 }
 
-// PESTAÑAS Y FUNCIONALIDAD DE INTERFAZ
+// PESTAÑAS E INTERFAZ
 function switchTab(tabId, btnElement) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
@@ -660,7 +605,36 @@ function updateProfileUI() {
   if (libritosCount) libritosCount.innerText = appState.libritos;
 }
 
-// BÚSQUEDA Y COMUNIDAD EN SOCIAL
+// BÚSQUEDA Y FIRESTORE SOCIAL
+async function cargarComunidadDesdeFirestore() {
+  if (!window.db || !window.collection || !window.getDocs) return;
+
+  try {
+    const querySnapshot = await window.getDocs(window.collection(window.db, "perfiles"));
+    const usuariosReales = [];
+
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      usuariosReales.push({
+        name: data.displayName || "Usuario de Libritos",
+        year: data.anio || "1.º Año",
+        orientation: data.especialidad || "General",
+        status: "online",
+        stars: 5,
+        goodSubjects: data.materiasBuenas || [],
+        goodDesc: data.descBuenas || "",
+        badSubjects: data.materiasMalas || [],
+        badDesc: data.descMalas || ""
+      });
+    });
+
+    communityUsers = usuariosReales;
+    renderUsersList(communityUsers);
+  } catch (error) {
+    console.error("Error al cargar la comunidad desde Firestore:", error);
+  }
+}
+
 function renderUsersList(filteredUsers = communityUsers) {
   const container = document.getElementById('usersListContainer');
   if (!container) return;
@@ -689,7 +663,7 @@ function renderUsersList(filteredUsers = communityUsers) {
       </div>
       <div class="reward-sub">${u.year} ${u.orientation ? '| ' + u.orientation : ''}</div>
       <div class="tags-container">
-        ${u.goodSubjects.map(s => `<span class="tag">${s}</span>`).join('')}
+        ${(u.goodSubjects || []).map(s => `<span class="tag">${s}</span>`).join('')}
       </div>
     `;
     container.appendChild(item);
@@ -705,7 +679,7 @@ function filterUsers() {
 
   const filtered = communityUsers.filter(u => {
     const matchesQuery = u.name.toLowerCase().includes(query) ||
-      u.goodSubjects.some(s => s.toLowerCase().includes(query));
+      (u.goodSubjects && u.goodSubjects.some(s => s.toLowerCase().includes(query)));
     const matchesStars = u.stars >= minStars;
     const matchesYear = (yearVal === 'all') || (u.year.includes(yearVal));
     const matchesOrientation = (orientationVal === 'all') || (u.orientation.toLowerCase().includes(orientationVal.toLowerCase()));
@@ -728,13 +702,7 @@ function openUserProfile(user) {
   document.getElementById('modalUserRep').innerText = '★'.repeat(user.stars) + '☆'.repeat(5 - user.stars);
 
   const ratingsContainer = document.getElementById('modalSubjectRatings');
-  if (user.subjectRatings) {
-    ratingsContainer.innerHTML = Object.entries(user.subjectRatings)
-      .map(([subject, rating]) => `<div>${subject}: <span class="stars-gold">${'★'.repeat(rating)}</span></div>`)
-      .join('');
-  } else {
-    ratingsContainer.innerHTML = '<div>General: <span class="stars-gold">★★★★★</span></div>';
-  }
+  ratingsContainer.innerHTML = '<div>General: <span class="stars-gold">★★★★★</span></div>';
 
   document.getElementById('modalGoodDesc').innerText = user.goodDesc || 'Sin descripción';
 
@@ -749,7 +717,7 @@ function closeUserProfile() {
   document.getElementById('userModal').style.display = 'none';
 }
 
-// Abre el modal de confirmación (reemplaza al confirm() del navegador)
+// CERRAR SESIÓN
 function logout() {
   const modal = document.getElementById('modal-logout');
   if (modal) modal.style.display = 'flex';
@@ -762,44 +730,17 @@ function cerrarModalLogout() {
 
 async function confirmarLogout() {
   try {
-    if (window.signOut && window.auth) await window.signOut(window.auth);
+    if (window.signOut && window.auth) {
+      await window.signOut(window.auth);
+    }
   } catch (error) {
     console.error("Error al cerrar sesión:", error);
   }
   location.reload();
 }
 
-// EXPOSICIÓN GLOBAL DE FUNCIONES
-window.toggleTheme = toggleTheme;
-window.setAuthMode = setAuthMode;
-window.handleSubmit = handleSubmit;
-window.handleGoogleLogin = handleGoogleLogin;
-window.recuperarContrasena = recuperarContrasena;
-window.evaluarAnioEspecialidad = evaluarAnioEspecialidad;
-window.cargarMateriasPorEspecialidad = cargarMateriasPorEspecialidad;
-window.mostrarModalMaterias = mostrarModalMaterias;
-window.cerrarModalMaterias = cerrarModalMaterias;
-window.guardarPerfilInicial = guardarPerfilInicial;
-window.mostrarModalNotificacion = mostrarModalNotificacion;
-window.cerrarModalNotificacion = cerrarModalNotificacion;
-window.switchTab = switchTab;
-window.completeTask = completeTask;
-window.openRewardModal = openRewardModal;
-window.closeRewardModal = closeRewardModal;
-window.generateRewardCode = generateRewardCode;
-window.toggleStatus = toggleStatus;
-window.filterUsers = filterUsers;
-window.openUserProfile = openUserProfile;
-window.closeUserProfile = closeUserProfile;
-window.logout = logout;
-window.cerrarModalLogout = cerrarModalLogout;
-window.confirmarLogout = confirmarLogout;
-window.mostrarVista = mostrarVista;
-window.showDashboard = showDashboard;
-window.showProfileSetup = showProfileSetup;
-
+// VERIFICACIÓN DE MAIL EN MODAL
 function mostrarModalVerificacion(user) {
-  // Remover modal e intervalo previo si existían
   const modalExistente = document.getElementById('modal-verificacion');
   if (modalExistente) modalExistente.remove();
   if (intervaloVerificacion) clearInterval(intervaloVerificacion);
@@ -831,10 +772,8 @@ function mostrarModalVerificacion(user) {
     if (modalElement) modalElement.remove();
   };
 
-  // Botón 'X' para cerrar manualmente (si cierra sin verificar, no podrá loguearse)
   document.getElementById('btn-cerrar-verificacion').addEventListener('click', cerrarModal);
 
-  // Reenviar correo
   document.getElementById('btn-reenviar-mail').addEventListener('click', async () => {
     try {
       await window.sendEmailVerification(user);
@@ -844,16 +783,14 @@ function mostrarModalVerificacion(user) {
     }
   });
 
-  // 🔄 COMPROBACIÓN AUTOMÁTICA EN SEGUNDO PLANO (Cada 3 segundos)
   intervaloVerificacion = setInterval(async () => {
     try {
-      await user.reload(); // Revalida con Firebase
-      // Si el modal ya se cerró mientras esperábamos, no hacemos nada
+      await user.reload();
       if (!document.getElementById('modal-verificacion')) return;
       if (user.emailVerified) {
-        cerrarModal(); // Se destruye la ventana
+        cerrarModal();
         mostrarModalNotificacion("¡Correo verificado!", "Tu cuenta ha sido confirmada con éxito.");
-        await continuarTrasLogin(user); // Perfil guardado → dashboard; si no, configuración
+        await continuarTrasLogin(user);
       }
     } catch (error) {
       console.error("Error al comprobar verificación automática:", error);
@@ -861,32 +798,31 @@ function mostrarModalVerificacion(user) {
   }, 3000);
 }
 
-async function cargarComunidadDesdeFirestore() {
-  if (!window.db || !window.collection || !window.getDocs) return;
-
-  try {
-    const querySnapshot = await window.getDocs(window.collection(window.db, "perfiles"));
-    const usuariosReales = [];
-
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      
-      usuariosReales.push({
-        name: data.displayName || "Usuario de Librito",
-        year: data.anio || "1.º Año",
-        orientation: data.especialidad || "General",
-        status: "online",
-        stars: 5,
-        goodSubjects: data.materiasBuenas || [],
-        goodDesc: data.descBuenas || "",
-        badSubjects: data.materiasMalas || [],
-        badDesc: data.descMalas || ""
-      });
-    });
-
-    communityUsers = usuariosReales;
-    renderUsersList(communityUsers);
-  } catch (error) {
-    console.error("Error al cargar los usuarios de la comunidad desde Firestore:", error);
-  }
-}
+// EXPOSICIÓN GLOBAL DE FUNCIONES
+window.toggleTheme = toggleTheme;
+window.setAuthMode = setAuthMode;
+window.handleSubmit = handleSubmit;
+window.handleGoogleLogin = handleGoogleLogin;
+window.recuperarContrasena = recuperarContrasena;
+window.evaluarAnioEspecialidad = evaluarAnioEspecialidad;
+window.cargarMateriasPorEspecialidad = cargarMateriasPorEspecialidad;
+window.mostrarModalMaterias = mostrarModalMaterias;
+window.cerrarModalMaterias = cerrarModalMaterias;
+window.guardarPerfilInicial = guardarPerfilInicial;
+window.mostrarModalNotificacion = mostrarModalNotificacion;
+window.cerrarModalNotificacion = cerrarModalNotificacion;
+window.switchTab = switchTab;
+window.completeTask = completeTask;
+window.openRewardModal = openRewardModal;
+window.closeRewardModal = closeRewardModal;
+window.generateRewardCode = generateRewardCode;
+window.toggleStatus = toggleStatus;
+window.filterUsers = filterUsers;
+window.openUserProfile = openUserProfile;
+window.closeUserProfile = closeUserProfile;
+window.logout = logout;
+window.cerrarModalLogout = cerrarModalLogout;
+window.confirmarLogout = confirmarLogout;
+window.mostrarVista = mostrarVista;
+window.showDashboard = showDashboard;
+window.showProfileSetup = showProfileSetup;
