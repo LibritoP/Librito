@@ -473,9 +473,88 @@ body {
   gap: 2rem;
 }
 
-@media (max-width: 900px) {
-  .menu-grid {
-    grid-template-columns: 1fr;
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+  /* 1. Ajustes del Header Superior */
+  .brand-header {
+    padding: 0.8rem 1rem !important;
+    gap: 0.5rem;
+  }
+
+  .brand-logo-title {
+    font-size: 1.1rem !important;
+  }
+
+  .header-actions {
+    padding-right: 50px !important; /* Espacio para que no lo tape la luna */
+  }
+
+  .libritos-badge {
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* 2. Menú de Navegación Comprimido */
+  .top-nav {
+    height: 50px !important;
+    gap: 0.5rem !important;
+    justify-content: space-around !important;
+    padding: 0 0.5rem !important;
+  }
+
+  .nav-item {
+    padding: 0 0.5rem !important;
+    font-size: 0.85rem !important;
+    gap: 0.3rem !important;
+  }
+
+  .nav-icon {
+    font-size: 1rem !important;
+  }
+
+  /* 3. Burbuja de Cambio de Tema (Luna) */
+  .theme-bubble {
+    top: 10px !important;
+    right: 10px !important;
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 1.1rem !important;
+    z-index: 10000 !important;
+  }
+
+  /* 4. Ajustes del Contenido Principal y Tarjetas */
+  .main-content {
+    padding: 1rem 0.8rem !important;
+  }
+
+  .app-container, .setup-card, .login-card {
+    padding: 1rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .rewards-grid, .users-grid {
+    grid-template-columns: 1fr !important; /* Muestra una sola columna en celus */
+    gap: 1rem !important;
+  }
+
+  .info-welcome-header h2 {
+    font-size: 1.1rem !important;
+  }
+
+  .profile-info {
+    grid-template-columns: 1fr !important;
+    gap: 0.8rem !important;
+  }
+
+  .modal-alert-card, .modal-card, .modal-box, .modal-content {
+    width: 95% !important;
+    padding: 20px 15px !important;
   }
 }
 
@@ -1007,5 +1086,11 @@ body {
     transform: scale(1);
   }
 }
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+
   
   
