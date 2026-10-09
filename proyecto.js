@@ -92,6 +92,7 @@ function toggleTheme() {
   const logoImg = document.getElementById('app-logo');
   const dashLogoImg = document.getElementById('dash-logo');
   const isDark = body.classList.contains('theme-dark');
+  const faviconImg = document.getElementById('app-favicon');
 
   if (isDark) {
     body.classList.remove('theme-dark');
@@ -99,12 +100,14 @@ function toggleTheme() {
     if (themeIcon) themeIcon.className = 'ri-moon-fill';
     if (logoImg) logoImg.src = LOGO_DIA;
     if (dashLogoImg) dashLogoImg.src = LOGO_DIA;
+    if (faviconImg) faviconImg.href = LOGO_DIA;
   } else {
     body.classList.remove('theme-light');
     body.classList.add('theme-dark');
     if (themeIcon) themeIcon.className = 'ri-sun-fill';
     if (logoImg) logoImg.src = LOGO_NOCHE;
     if (dashLogoImg) dashLogoImg.src = LOGO_NOCHE;
+    if (faviconImg) faviconImg.href = LOGO_NOCHE;
   }
 }
 
