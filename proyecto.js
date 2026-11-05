@@ -549,8 +549,12 @@ function switchTab(tabId, btnElement) {
   const targetTab = document.getElementById(tabId);
   if (targetTab) targetTab.classList.add('active');
   if (btnElement) btnElement.classList.add('active');
-}
 
+  // Si el usuario hace clic en la pestaña Social, refrescar la lista de la comunidad
+  if (tabId === 'view-social') {
+    cargarComunidadDesdeFirestore();
+  }
+}
 function completeTask(btn, points) {
   appState.points += points;
   appState.libritos = Math.floor(appState.points / 1000);
@@ -610,32 +614,58 @@ function updateProfileUI() {
 
 // BÚSQUEDA Y FIRESTORE SOCIAL
 async function cargarComunidadDesdeFirestore() {
-  if (!window.db || !window.collection || !window.getDocs) return;
+  let usuariosReales = [];
+  const usuarioActual = window.auth && window.auth.currentUser;
 
-  try {
-    const querySnapshot = await window.getDocs(window.collection(window.db, "perfiles"));
-    const usuariosReales = [];
-
-    querySnapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      usuariosReales.push({
-        name: data.displayName || "Usuario de Libritos",
-        year: data.anio || "1.º Año",
-        orientation: data.especialidad || "General",
-        status: "online",
-        stars: 5,
-        goodSubjects: data.materiasBuenas || [],
-        goodDesc: data.descBuenas || "",
-        badSubjects: data.materiasMalas || [],
-        badDesc: data.descMalas || ""
-      });
+  // 1. Agregar SIEMPRE tu propio perfil por defecto al inicio de la lista
+  if (appState.user && appState.user.username) {
+    usuariosReales.push({
+      name: appState.user.username + " (Tú)",
+      year: appState.user.year || "1.º Año",
+      orientation: appState.user.orientation || "General",
+      status: appState.user.status || "online",
+      stars: 5,
+      goodSubjects: appState.user.goodSubjects || [],
+      goodDesc: appState.user.goodDesc || "Mi perfil en Libritos",
+      badSubjects: appState.user.badSubjects || [],
+      badDesc: appState.user.badDesc || ""
     });
-
-    communityUsers = usuariosReales;
-    renderUsersList(communityUsers);
-  } catch (error) {
-    console.error("Error al cargar la comunidad desde Firestore:", error);
   }
+
+  // 2. Consultar y acumular los demás usuarios desde Firestore
+  if (window.db && window.collection && window.getDocs) {
+    try {
+      const querySnapshot = await window.getDocs(window.collection(window.db, "perfiles"));
+      
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const emailDoc = data.email || "";
+        const emailActual = usuarioActual ? usuarioActual.email : "";
+
+        // Evitar duplicar tu propio perfil si ya está guardado en Firestore
+        const esElMio = (usuarioActual && docSnap.id === usuarioActual.uid) || (emailDoc && emailActual && emailDoc === emailActual);
+        
+        if (!esElMio) {
+          usuariosReales.push({
+            name: data.displayName || "Usuario de Libritos",
+            year: data.anio || "1.º Año",
+            orientation: data.especialidad || "General",
+            status: "online",
+            stars: 5,
+            goodSubjects: data.materiasBuenas || [],
+            goodDesc: data.descBuenas || "",
+            badSubjects: data.materiasMalas || [],
+            badDesc: data.descMalas || ""
+          });
+        }
+      });
+    } catch (error) {
+      console.error("Error al cargar la comunidad desde Firestore:", error);
+    }
+  }
+
+  communityUsers = usuariosReales;
+  renderUsersList(communityUsers);
 }
 
 function renderUsersList(filteredUsers = communityUsers) {
