@@ -8,6 +8,7 @@ let appState = {
   points: 0,
   libritos: 0,
   stars: 5,
+  tareasHoy: [],
   selectedRewardCost: 0,
   user: {
     username: 'Usuario',
@@ -30,27 +31,43 @@ let communityUsers = [];
 const rewardCatalog = [
   {
     id: 1,
-    title: "Fotocopias Gratis x10",
-    costPts: 1000,
-    costLibritos: 1,
+    title: "Fotocopias Gratis x5",
+    costPts: 20000,
+    costLibritos: 20,
     desc: "Cuponera para imprimir material escolar en la librería del colegio.",
-    img: "https://images.unsplash.com/photo-1568667256549-094345857637?auto=format&fit=crop&w=400&q=80"
+    img: "https://http2.mlstatic.com/D_NQ_NP_777622-MLA86243848616_062025-O.webp"
   },
   {
     id: 2,
-    title: "Descuento en Cantina",
-    costPts: 2000,
-    costLibritos: 2,
-    desc: "Vale por un snack o bebida en el recreo de la cooperadora.",
-    img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80"
+    title: "Pancho a 1000$",
+    costPts: 50000,
+    costLibritos: 50,
+    desc: "Vale por un Pancho con papa y aderezo",
+    img: "https://imgs.search.brave.com/_EsFWlMqMrA45RS1oKZZtdTx61ErwX9ZHsAI_sUEOQQ/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzL2M0L2Ji/LzU1L2M0YmI1NTk1/MzYzOWQwZmY4ZjRk/ODQ5ZTA0NDdiMWRl/LmpwZw"
   },
   {
     id: 3,
-    title: "Punto Extra en Trabajo",
-    costPts: 5000,
-    costLibritos: 5,
-    desc: "Beneficio académico para presentar en la materia que elijas.",
-    img: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=400&q=80"
+    title: "Un Guaymallen Clasico",
+    costPts: 25000,
+    costLibritos: 25,
+    desc: "Un Guaymallen clásico de chocolate negro o blanco",
+    img: "https://imgs.search.brave.com/q4FCrW6V_47ZdVwim0cz0FkpmYkqma7HK7w_gppXbew/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9odHRw/Mi5tbHN0YXRpYy5j/b20vRF9RX05QXzJY/XzgzMDI0MC1NTEE1/MDE2NDc5NTkzOF8w/NjIwMjItVi53ZWJw"
+  },
+  {
+    id: 4,
+    title: "Placer🗣️",
+    costPts: 60000,
+    costLibritos: 60,
+    desc: "Vale por una Placer de 500ml",
+    img: "https://imgs.search.brave.com/voZTxje4xfp4YvunTEVO5qccBPupvISffmpalxK_Q8I/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9lbG5v/bm8uY29tLmFyL3dw/LWNvbnRlbnQvdXBs/b2Fkcy8yMDI1LzA0/L2Rlc2NhcmdhLTct/My5qcGVn"
+  },
+  {
+    id: 5,
+    title: "Combo Jugo/Cafe + Pancho",
+    costPts: 100000,
+    costLibritos: 100,
+    desc: "Vale por una Placer de 500ml o Cafe/Cafe con leche ",
+    img: "https://imgs.search.brave.com/_EsFWlMqMrA45RS1oKZZtdTx61ErwX9ZHsAI_sUEOQQ/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzL2M0L2Ji/LzU1L2M0YmI1NTk1/MzYzOWQwZmY4ZjRk/ODQ5ZTA0NDdiMWRl/LmpwZw"
   }
 ];
 
@@ -70,6 +87,9 @@ function mostrarVista(idVista) {
       target.style.display = 'flex';
     }
   }
+
+  const chat = document.getElementById('chat-widget');
+  if (chat) chat.style.display = idVista === 'dashboard-view' ? 'block' : 'none';
 }
 
 function showProfileSetup() {
@@ -81,9 +101,10 @@ async function showDashboard(nombreUsuario) {
   if (nombreUsuario) {
     appState.user.username = nombreUsuario;
   }
-  updateProfileUI();
+  refrescarProgresoUI();
   renderRewardsCatalog();
   restaurarPestana();
+  iniciarChats();
   await cargarComunidadDesdeFirestore();
 }
 
@@ -125,6 +146,29 @@ async function restaurarSesion() {
     if (user && user.emailVerified) {
       sesionResuelta = true;
       try {
+        // Confirmar con el servidor que la cuenta sigue existiendo
+        // (si se borró desde la consola, la sesión guardada en el navegador queda vieja)
+        try {
+          await user.reload();
+        } catch (errorReload) {
+          const cuentaInvalida = [
+            'auth/user-not-found',
+            'auth/user-token-expired',
+            'auth/user-disabled',
+            'auth/invalid-user-token'
+          ].includes(errorReload && errorReload.code);
+
+          if (cuentaInvalida) {
+            try { await window.signOut(window.auth); } catch (e) {}
+            try { sessionStorage.removeItem('libritos_tab'); sessionStorage.removeItem('libritos_social'); } catch (e) {}
+            sesionResuelta = false;
+            mostrarLoginSiCorresponde();
+            return;
+          }
+          // Otros errores (por ejemplo sin internet): seguir con la sesión guardada
+          console.warn('No se pudo verificar la cuenta:', errorReload);
+        }
+
         await continuarTrasLogin(user);
       } catch (error) {
         console.error('Error al restaurar la sesión:', error);
@@ -267,6 +311,11 @@ async function continuarTrasLogin(user) {
     appState.user.badSubjects = datos.materiasMalas || [];
     appState.user.goodDesc = datos.descBuenas || '';
     appState.user.badDesc = datos.descMalas || '';
+
+    appState.points = Number(datos.puntos) || 0;
+    appState.libritos = Math.floor(appState.points / 1000);
+    const tareas = datos.tareasHoy;
+    appState.tareasHoy = (tareas && tareas.fecha === fechaHoy() && Array.isArray(tareas.ids)) ? tareas.ids : [];
 
     await showDashboard(appState.user.username);
   } else {
@@ -549,6 +598,7 @@ function generateRewardCode() {
     document.getElementById('rewardStep2').style.display = 'block';
 
     updateProfileUI();
+    guardarProgreso();
   } else {
     document.getElementById('rewardErrorMsg').innerText = `Necesitás ${appState.selectedRewardCost} pts y tenés ${appState.points} pts.`;
     document.getElementById('rewardStep1').style.display = 'none';
@@ -607,28 +657,57 @@ function switchTab(tabId, btnElement) {
   try { sessionStorage.setItem('libritos_tab', tabId); } catch (e) {}
 }
 
-function completeTask(btn, points) {
-  appState.points += points;
-  appState.libritos = Math.floor(appState.points / 1000);
+function fechaHoy() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
-  const totalPointsEl = document.getElementById('totalPoints');
-  const libritosCountEl = document.getElementById('libritosCount');
+// Guarda puntos y tareas del día en el perfil (Firestore)
+async function guardarProgreso() {
+  const user = window.auth && window.auth.currentUser;
+  if (!user || !window.setDoc || !window.db) return;
+  try {
+    await window.setDoc(window.doc(window.db, 'perfiles', user.uid), {
+      puntos: appState.points,
+      tareasHoy: { fecha: fechaHoy(), ids: appState.tareasHoy }
+    }, { merge: true });
+  } catch (error) {
+    console.error('Error al guardar el progreso:', error);
+  }
+}
+
+function refrescarProgresoUI() {
+  updateProfileUI();
+
   const todayValEl = document.getElementById('todayVal');
   const todayBarEl = document.getElementById('todayBar');
-
-  if (totalPointsEl) totalPointsEl.innerText = appState.points;
-  if (libritosCountEl) libritosCountEl.innerText = appState.libritos;
   if (todayValEl) todayValEl.innerText = appState.points;
-
   if (todayBarEl) {
     const height = Math.min((appState.points / 10000) * 100, 100);
     todayBarEl.style.height = height + 'px';
   }
 
+  document.querySelectorAll('.task-btn[data-task-id]').forEach(btn => {
+    if (appState.tareasHoy.includes(btn.dataset.taskId)) {
+      btn.disabled = true;
+      btn.innerText = '¡Completado!';
+    }
+  });
+}
+
+function completeTask(btn, points) {
+  const id = btn.dataset.taskId;
+  if (id && appState.tareasHoy.includes(id)) return;
+
+  appState.points += points;
+  appState.libritos = Math.floor(appState.points / 1000);
+  if (id) appState.tareasHoy.push(id);
+
   btn.disabled = true;
   btn.innerText = '¡Completado!';
 
-  updateProfileUI();
+  refrescarProgresoUI();
+  guardarProgreso();
 }
 
 function toggleStatus() {
@@ -675,6 +754,7 @@ async function cargarComunidadDesdeFirestore() {
     querySnapshot.forEach((docSnap) => {
       const data = docSnap.data();
       usuariosReales.push({
+        uid: docSnap.id,
         name: data.displayName || "Usuario de Libritos",
         year: data.anio || "1.º Año",
         orientation: data.especialidad || "General",
@@ -750,6 +830,10 @@ function filterUsers() {
 }
 
 function openUserProfile(user) {
+  perfilAbierto = user;
+  const btnContactar = document.getElementById('btn-contactar');
+  if (btnContactar) btnContactar.style.display = (user.uid && user.uid !== miUid()) ? '' : 'none';
+
   document.getElementById('modalUserName').innerText = user.name;
   document.getElementById('modalUserYear').innerText = user.year + (user.orientation ? ` (${user.orientation})` : '');
 
@@ -1101,7 +1185,13 @@ async function eliminarApunte() {
   const n = apuntesCache.find(x => x.id === apunteAbiertoId);
   const user = window.auth && window.auth.currentUser;
   if (!n || !user || user.uid !== n.autorUid) return;
-  if (!window.confirm('¿Seguro que querés eliminar este apunte?')) return;
+  const ok = await mostrarConfirmacion({
+    icono: '🗑️',
+    titulo: '¿Eliminar este apunte?',
+    mensaje: 'Se va a borrar para todos tus compañeros y no se puede deshacer.',
+    textoConfirmar: 'Eliminar'
+  });
+  if (!ok) return;
 
   try {
     await window.deleteDoc(window.doc(window.db, 'apuntes', n.id));
@@ -1110,6 +1200,310 @@ async function eliminarApunte() {
   } catch (error) {
     console.error('Error al eliminar el apunte:', error);
     mostrarModalNotificacion('No se pudo eliminar', 'Intentá de nuevo en unos segundos.');
+  }
+}
+
+// ==========================================================================
+// DIÁLOGO DE CONFIRMACIÓN (con los colores del tema, reemplaza a confirm())
+// ==========================================================================
+function mostrarConfirmacion({ titulo, mensaje, icono = '❓', textoConfirmar = 'Aceptar', textoCancelar = 'Cancelar' }) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('modal-confirmar');
+    const btnOk = document.getElementById('confirmar-aceptar');
+    const btnNo = document.getElementById('confirmar-cancelar');
+    if (!modal || !btnOk || !btnNo) { resolve(false); return; }
+
+    document.getElementById('confirmar-icono').textContent = icono;
+    document.getElementById('confirmar-titulo').textContent = titulo || '¿Estás seguro?';
+    document.getElementById('confirmar-mensaje').textContent = mensaje || '';
+    btnOk.textContent = textoConfirmar;
+    btnNo.textContent = textoCancelar;
+
+    const cerrar = (resultado) => {
+      modal.style.display = 'none';
+      btnOk.onclick = btnNo.onclick = modal.onclick = null;
+      resolve(resultado);
+    };
+    btnOk.onclick = () => cerrar(true);
+    btnNo.onclick = () => cerrar(false);
+    modal.onclick = (e) => { if (e.target === modal) cerrar(false); };
+
+    modal.style.display = 'flex';
+  });
+}
+
+// ==========================================================================
+// CHAT EN TIEMPO REAL
+// chats/{uidA_uidB}            -> participantes, nombres, último mensaje, leído
+// chats/{uidA_uidB}/mensajes   -> texto, autorUid, createdAt
+// ==========================================================================
+let perfilAbierto = null;
+let chatsUnsub = null;
+let chatsData = [];
+let chatMensajesUnsub = null;
+let chatActual = null;       // { id, otroUid, otroNombre }
+let chatsNoLeidosPrevio = 0;
+
+function miUid() {
+  return (window.auth && window.auth.currentUser && window.auth.currentUser.uid) || null;
+}
+
+function idChat(a, b) {
+  return [a, b].sort().join('_');
+}
+
+function chatSinLeer(chat) {
+  const me = miUid();
+  const leido = (chat.leido && chat.leido[me]) || 0;
+  return !!chat.ultimoAutor && chat.ultimoAutor !== me && leido < (chat.actualizado || 0);
+}
+
+function panelChatAbierto() {
+  const p = document.getElementById('chat-panel');
+  return !!p && p.style.display !== 'none';
+}
+
+function actualizarBadgeChat() {
+  const sinLeer = chatsData.filter(chatSinLeer).length;
+  const badge = document.getElementById('chat-badge');
+  const fab = document.getElementById('chat-fab');
+  if (badge) {
+    badge.textContent = sinLeer > 9 ? '9+' : sinLeer;
+    badge.style.display = sinLeer > 0 ? 'flex' : 'none';
+  }
+  if (fab && sinLeer > chatsNoLeidosPrevio) {
+    fab.classList.add('nuevo');
+    setTimeout(() => fab.classList.remove('nuevo'), 4000);
+  }
+  chatsNoLeidosPrevio = sinLeer;
+}
+
+function iniciarChats() {
+  const me = miUid();
+  if (chatsUnsub || !me || !window.onSnapshot || !window.where || !window.query) return;
+
+  const q = window.query(
+    window.collection(window.db, 'chats'),
+    window.where('participantes', 'array-contains', me)
+  );
+
+  chatsUnsub = window.onSnapshot(q, (snap) => {
+    chatsData = [];
+    snap.forEach(d => chatsData.push({ id: d.id, ...d.data() }));
+    chatsData.sort((a, b) => (b.actualizado || 0) - (a.actualizado || 0));
+    actualizarBadgeChat();
+
+    if (chatActual) {
+      const c = chatsData.find(x => x.id === chatActual.id);
+      if (c && chatSinLeer(c)) marcarChatLeido(c);
+    } else if (panelChatAbierto()) {
+      renderListaChats();
+    }
+  }, (error) => {
+    console.error('Error al escuchar los chats:', error);
+    chatsUnsub = null;
+  });
+}
+
+function marcarChatLeido(chat) {
+  const me = miUid();
+  if (!me || !window.setDoc) return;
+  window.setDoc(window.doc(window.db, 'chats', chat.id), {
+    leido: { [me]: Math.max(Date.now(), chat.actualizado || 0) }
+  }, { merge: true }).catch(e => console.error('Error al marcar como leído:', e));
+}
+
+function mostrarVistaChat(vista) {
+  const enConversacion = vista === 'conv';
+  document.getElementById('chat-list').style.display = enConversacion ? 'none' : 'block';
+  document.getElementById('chat-conv').style.display = enConversacion ? 'flex' : 'none';
+  document.getElementById('chat-back').style.display = enConversacion ? '' : 'none';
+  document.getElementById('chat-title').textContent = enConversacion && chatActual ? chatActual.otroNombre : 'Mensajes';
+}
+
+function renderListaChats() {
+  const cont = document.getElementById('chat-list');
+  if (!cont) return;
+  cont.innerHTML = '';
+  const me = miUid();
+
+  const conMensajes = chatsData.filter(c => c.ultimoMensaje);
+  if (conMensajes.length === 0) {
+    const vacio = document.createElement('p');
+    vacio.className = 'chat-empty';
+    vacio.textContent = 'Todavía no tenés conversaciones. Entrá al perfil de un compañero en Social y tocá "Contactar".';
+    cont.appendChild(vacio);
+    return;
+  }
+
+  conMensajes.forEach(chat => {
+    const otroUid = (chat.participantes || []).find(u => u !== me);
+    const nombre = (chat.nombres && chat.nombres[otroUid]) || 'Usuario';
+    const sinLeer = chatSinLeer(chat);
+
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'chat-list-item' + (sinLeer ? ' sin-leer' : '');
+
+    const info = document.createElement('div');
+    const n = document.createElement('div');
+    n.className = 'chat-list-name';
+    n.textContent = nombre;
+    const p = document.createElement('div');
+    p.className = 'chat-list-preview';
+    p.textContent = (chat.ultimoAutor === me ? 'Vos: ' : '') + chat.ultimoMensaje;
+    info.append(n, p);
+    item.appendChild(info);
+
+    if (sinLeer) {
+      const dot = document.createElement('span');
+      dot.className = 'chat-dot';
+      item.appendChild(dot);
+    }
+
+    item.onclick = () => abrirChatCon(otroUid, nombre);
+    cont.appendChild(item);
+  });
+}
+
+function renderMensajes(docs) {
+  const cont = document.getElementById('chat-messages');
+  if (!cont) return;
+  const me = miUid();
+  cont.innerHTML = '';
+
+  if (docs.length === 0) {
+    const vacio = document.createElement('p');
+    vacio.className = 'chat-empty';
+    vacio.textContent = 'Escribí el primer mensaje para empezar la conversación.';
+    cont.appendChild(vacio);
+    return;
+  }
+
+  docs.forEach(m => {
+    const burbuja = document.createElement('div');
+    burbuja.className = 'chat-bubble ' + (m.autorUid === me ? 'mia' : 'otra');
+
+    const texto = document.createElement('div');
+    texto.textContent = m.texto;
+    const hora = document.createElement('div');
+    hora.className = 'chat-time';
+    hora.textContent = m.createdAt
+      ? new Date(m.createdAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+      : '';
+    burbuja.append(texto, hora);
+    cont.appendChild(burbuja);
+  });
+  cont.scrollTop = cont.scrollHeight;
+}
+
+async function abrirChatCon(otroUid, otroNombre) {
+  const me = miUid();
+  if (!me || !otroUid || otroUid === me) return;
+  const id = idChat(me, otroUid);
+
+  try {
+    await window.setDoc(window.doc(window.db, 'chats', id), {
+      participantes: [me, otroUid].sort(),
+      nombres: {
+        [me]: appState.user.username || 'Usuario',
+        [otroUid]: otroNombre || 'Usuario'
+      }
+    }, { merge: true });
+  } catch (error) {
+    console.error('Error al abrir el chat:', error);
+    mostrarModalNotificacion(
+      'No se pudo abrir el chat',
+      error && error.code === 'permission-denied'
+        ? 'Firebase no permite usar los chats todavía. Hay que actualizar las reglas de Firestore.'
+        : 'Revisá tu conexión e intentá de nuevo.'
+    );
+    return;
+  }
+
+  if (chatMensajesUnsub) { chatMensajesUnsub(); chatMensajesUnsub = null; }
+  chatActual = { id, otroUid, otroNombre: otroNombre || 'Usuario' };
+  mostrarVistaChat('conv');
+  renderMensajes([]);
+
+  const q = window.query(
+    window.collection(window.db, 'chats', id, 'mensajes'),
+    window.orderBy('createdAt', 'asc'),
+    window.limit(200)
+  );
+  chatMensajesUnsub = window.onSnapshot(q, (snap) => {
+    const docs = [];
+    snap.forEach(d => docs.push(d.data()));
+    renderMensajes(docs);
+  }, (error) => {
+    console.error('Error al escuchar los mensajes:', error);
+  });
+
+  const existente = chatsData.find(c => c.id === id);
+  if (existente && chatSinLeer(existente)) marcarChatLeido(existente);
+
+  const input = document.getElementById('chat-input');
+  if (input) input.focus();
+}
+
+function volverAListaChats() {
+  if (chatMensajesUnsub) { chatMensajesUnsub(); chatMensajesUnsub = null; }
+  chatActual = null;
+  mostrarVistaChat('lista');
+  renderListaChats();
+}
+
+function toggleChatPanel() {
+  const panel = document.getElementById('chat-panel');
+  if (!panel) return;
+  if (panelChatAbierto()) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = 'flex';
+  if (chatActual) {
+    mostrarVistaChat('conv');
+  } else {
+    mostrarVistaChat('lista');
+    renderListaChats();
+  }
+}
+
+function contactarCompanero() {
+  const u = perfilAbierto;
+  if (!u || !u.uid) return;
+  closeUserProfile();
+  document.getElementById('chat-panel').style.display = 'flex';
+  abrirChatCon(u.uid, u.name);
+}
+
+async function enviarMensaje(event) {
+  if (event) event.preventDefault();
+  const me = miUid();
+  const input = document.getElementById('chat-input');
+  if (!chatActual || !me || !input) return;
+
+  const texto = input.value.trim().slice(0, 500);
+  if (!texto) return;
+  input.value = '';
+
+  const ts = Date.now();
+  try {
+    await window.addDoc(window.collection(window.db, 'chats', chatActual.id, 'mensajes'), {
+      texto,
+      autorUid: me,
+      createdAt: ts
+    });
+    await window.setDoc(window.doc(window.db, 'chats', chatActual.id), {
+      ultimoMensaje: texto.slice(0, 80),
+      ultimoAutor: me,
+      actualizado: ts,
+      leido: { [me]: ts }
+    }, { merge: true });
+  } catch (error) {
+    console.error('Error al enviar el mensaje:', error);
+    input.value = texto;
+    mostrarModalNotificacion('No se pudo enviar', 'Revisá tu conexión e intentá de nuevo.');
   }
 }
 
@@ -1224,6 +1618,11 @@ window.mostrarVista = mostrarVista;
 window.showDashboard = showDashboard;
 window.showProfileSetup = showProfileSetup;
 window.restaurarSesion = restaurarSesion;
+window.mostrarConfirmacion = mostrarConfirmacion;
+window.toggleChatPanel = toggleChatPanel;
+window.volverAListaChats = volverAListaChats;
+window.contactarCompanero = contactarCompanero;
+window.enviarMensaje = enviarMensaje;
 window.cambiarSeccionSocial = cambiarSeccionSocial;
 window.abrirModalSubirApunte = abrirModalSubirApunte;
 window.cerrarModalSubirApunte = cerrarModalSubirApunte;
