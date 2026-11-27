@@ -83,8 +83,62 @@ async function showDashboard(nombreUsuario) {
   }
   updateProfileUI();
   renderRewardsCatalog();
+  restaurarPestana();
   await cargarComunidadDesdeFirestore();
 }
+
+// Vuelve a la pestaña en la que estaba la persona antes de recargar
+function restaurarPestana() {
+  let tabId = null;
+  try { tabId = sessionStorage.getItem('libritos_tab'); } catch (e) {}
+  if (!tabId || !document.getElementById(tabId)) return;
+  const btn = document.querySelector(`.nav-item[onclick*="'${tabId}'"]`);
+  switchTab(tabId, btn);
+
+  if (tabId === 'view-social') {
+    let sec = null;
+    try { sec = sessionStorage.getItem('libritos_social'); } catch (e) {}
+    if (sec === 'apuntes') cambiarSeccionSocial('apuntes');
+  }
+}
+
+// MANTENER LA SESIÓN AL RECARGAR (REFRESH)
+let sesionResuelta = false;
+
+function mostrarLoginSiCorresponde() {
+  if (sesionResuelta) return;
+  sesionResuelta = true;
+  mostrarVista('auth-view');
+}
+
+async function restaurarSesion() {
+  if (!window.auth || !window.onAuthStateChanged) {
+    mostrarLoginSiCorresponde();
+    return;
+  }
+
+  // Solo se usa la primera respuesta: el login normal ya lo maneja handleSubmit
+  const cancelar = window.onAuthStateChanged(window.auth, async (user) => {
+    cancelar();
+    if (sesionResuelta) return;
+
+    if (user && user.emailVerified) {
+      sesionResuelta = true;
+      try {
+        await continuarTrasLogin(user);
+      } catch (error) {
+        console.error('Error al restaurar la sesión:', error);
+        sesionResuelta = false;
+        mostrarLoginSiCorresponde();
+      }
+    } else {
+      mostrarLoginSiCorresponde();
+    }
+  });
+}
+
+// Si Firebase no carga (sin internet), mostrar el login igual
+setTimeout(mostrarLoginSiCorresponde, 5000);
 
 function toggleTheme() {
   const body = document.body;
@@ -549,6 +603,8 @@ function switchTab(tabId, btnElement) {
   const targetTab = document.getElementById(tabId);
   if (targetTab) targetTab.classList.add('active');
   if (btnElement) btnElement.classList.add('active');
+
+  try { sessionStorage.setItem('libritos_tab', tabId); } catch (e) {}
 }
 
 function completeTask(btn, points) {
@@ -720,6 +776,343 @@ function closeUserProfile() {
   document.getElementById('userModal').style.display = 'none';
 }
 
+// ==========================================================================
+// SOCIAL: SECCIONES (BUSCAR AYUDA / BANCO DE APUNTES)
+// ==========================================================================
+function cambiarSeccionSocial(seccion) {
+  const esApuntes = seccion === 'apuntes';
+  const ayuda = document.getElementById('social-ayuda');
+  const apuntes = document.getElementById('social-apuntes');
+  if (ayuda) ayuda.style.display = esApuntes ? 'none' : '';
+  if (apuntes) apuntes.style.display = esApuntes ? '' : 'none';
+
+  document.getElementById('btn-social-ayuda')?.classList.toggle('active', !esApuntes);
+  document.getElementById('btn-social-apuntes')?.classList.toggle('active', esApuntes);
+
+  try { sessionStorage.setItem('libritos_social', esApuntes ? 'apuntes' : 'ayuda'); } catch (e) {}
+
+  if (esApuntes) cargarApuntes();
+}
+
+// ==========================================================================
+// BANCO DE APUNTES
+// Las imágenes se comprimen en el navegador y se guardan en Firestore
+// (colección "apuntes"), así no hace falta activar Firebase Storage.
+// ==========================================================================
+const MAX_IMAGENES_APUNTE = 3;
+const MAX_CHARS_APUNTE = 900 * 1024; // Firestore permite ~1 MiB por documento
+const TODAS_LAS_MATERIAS = Array.from(
+  new Set([...MATERIAS_GENERALES, ...MATERIAS_COMPUTACION, ...MATERIAS_AUTOMOTOR])
+).sort((a, b) => a.localeCompare(b, 'es'));
+
+let apuntesCache = [];
+let imagenesNuevas = [];      // [{ file, dataUrl }]
+let apunteAbiertoId = null;
+let publicandoApunte = false;
+
+function escaparHTML(texto) {
+  return String(texto == null ? '' : texto).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function poblarSelectsApuntes() {
+  const opciones = TODAS_LAS_MATERIAS.map(m => `<option value="${escaparHTML(m)}">${escaparHTML(m)}</option>`).join('');
+  const selSubir = document.getElementById('apunte-materia');
+  const selFiltro = document.getElementById('notesFilterMateria');
+  if (selSubir) selSubir.innerHTML = opciones;
+  if (selFiltro) selFiltro.innerHTML = '<option value="all">Todas las materias</option>' + opciones;
+}
+
+function comprimirImagen(file, maxLado, calidad) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const escala = Math.min(1, maxLado / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * escala));
+      canvas.height = Math.max(1, Math.round(img.height * escala));
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', calidad));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('No se pudo leer la imagen'));
+    };
+    img.src = url;
+  });
+}
+
+function mostrarErrorApunte(texto) {
+  const el = document.getElementById('apunte-error');
+  if (!el) return;
+  el.textContent = texto || '';
+  el.style.display = texto ? 'block' : 'none';
+}
+
+function abrirModalSubirApunte() {
+  if (!(window.auth && window.auth.currentUser)) {
+    mostrarModalNotificacion('Sesión requerida', 'Iniciá sesión para subir apuntes.');
+    return;
+  }
+  const modal = document.getElementById('modal-apunte-subir');
+  if (modal) modal.style.display = 'flex';
+}
+
+function cerrarModalSubirApunte() {
+  const modal = document.getElementById('modal-apunte-subir');
+  if (modal) modal.style.display = 'none';
+  imagenesNuevas = [];
+  ['apunte-titulo', 'apunte-desc', 'apunte-imagenes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderPreviewsApunte();
+  mostrarErrorApunte('');
+}
+
+function renderPreviewsApunte() {
+  const cont = document.getElementById('apunte-previews');
+  if (!cont) return;
+  cont.innerHTML = '';
+  imagenesNuevas.forEach((img, i) => {
+    const box = document.createElement('div');
+    box.className = 'notes-preview';
+    box.innerHTML = `<img src="${img.dataUrl}" alt="Vista previa ${i + 1}">
+      <button type="button" aria-label="Quitar imagen">✕</button>`;
+    box.querySelector('button').onclick = () => {
+      imagenesNuevas.splice(i, 1);
+      renderPreviewsApunte();
+    };
+    cont.appendChild(box);
+  });
+}
+
+async function agregarImagenesApunte(input) {
+  mostrarErrorApunte('');
+  const archivos = Array.from(input.files || []).filter(f => f.type.startsWith('image/'));
+  input.value = '';
+
+  for (const file of archivos) {
+    if (imagenesNuevas.length >= MAX_IMAGENES_APUNTE) {
+      mostrarErrorApunte(`Podés subir hasta ${MAX_IMAGENES_APUNTE} imágenes por apunte.`);
+      break;
+    }
+    try {
+      const dataUrl = await comprimirImagen(file, 1280, 0.7);
+      imagenesNuevas.push({ file, dataUrl });
+    } catch (error) {
+      console.error(error);
+      mostrarErrorApunte('Una de las imágenes no se pudo leer. Probá con otra.');
+    }
+  }
+  renderPreviewsApunte();
+}
+
+async function publicarApunte() {
+  if (publicandoApunte) return;
+  mostrarErrorApunte('');
+
+  const user = window.auth && window.auth.currentUser;
+  if (!user) {
+    mostrarErrorApunte('Tenés que iniciar sesión para publicar.');
+    return;
+  }
+  if (!(window.addDoc && window.collection && window.db)) {
+    mostrarErrorApunte('No se pudo conectar con Firebase. Recargá la página.');
+    return;
+  }
+
+  const titulo = document.getElementById('apunte-titulo').value.trim();
+  const materia = document.getElementById('apunte-materia').value;
+  const anio = document.getElementById('apunte-anio').value;
+  const descripcion = document.getElementById('apunte-desc').value.trim();
+
+  if (!titulo) { mostrarErrorApunte('Escribí un título para tus apuntes.'); return; }
+  if (imagenesNuevas.length === 0) { mostrarErrorApunte('Agregá al menos una imagen.'); return; }
+
+  const imagenes = imagenesNuevas.map(i => i.dataUrl);
+  let miniatura;
+  try {
+    miniatura = await comprimirImagen(imagenesNuevas[0].file, 400, 0.6);
+  } catch (e) {
+    miniatura = imagenes[0];
+  }
+
+  const total = imagenes.reduce((a, b) => a + b.length, 0) + miniatura.length;
+  if (total > MAX_CHARS_APUNTE) {
+    mostrarErrorApunte('Las imágenes pesan demasiado. Quitá alguna o usá fotos más simples.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-publicar-apunte');
+  publicandoApunte = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Publicando...'; }
+
+  try {
+    await conTimeout(
+      window.addDoc(window.collection(window.db, 'apuntes'), {
+        titulo,
+        materia,
+        anio,
+        descripcion,
+        imagenes,
+        miniatura,
+        autorUid: user.uid,
+        autorNombre: appState.user.username || user.displayName || 'Usuario',
+        createdAt: Date.now()
+      }),
+      20000,
+      'publicar apunte'
+    );
+    cerrarModalSubirApunte();
+    mostrarModalNotificacion('¡Apunte publicado!', 'Gracias por compartir. Tus compañeros ya pueden verlo.');
+    await cargarApuntes();
+  } catch (error) {
+    console.error('Error al publicar el apunte:', error);
+    if (error && error.code === 'permission-denied') {
+      mostrarErrorApunte('Firebase no permite escribir en "apuntes". Hay que actualizar las reglas de Firestore.');
+    } else {
+      mostrarErrorApunte('No se pudo publicar. Revisá tu conexión e intentá de nuevo.');
+    }
+  } finally {
+    publicandoApunte = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Publicar'; }
+  }
+}
+
+async function cargarApuntes() {
+  const cont = document.getElementById('notesListContainer');
+  if (!cont) return;
+  if (!(window.db && window.collection && window.getDocs && window.query && window.orderBy && window.limit)) return;
+
+  if (apuntesCache.length === 0) {
+    cont.innerHTML = '<p class="subtitle-text center-text margin-top-sm">Cargando apuntes...</p>';
+  }
+
+  try {
+    const q = window.query(
+      window.collection(window.db, 'apuntes'),
+      window.orderBy('createdAt', 'desc'),
+      window.limit(40)
+    );
+    const snap = await window.getDocs(q);
+    apuntesCache = [];
+    snap.forEach(d => apuntesCache.push({ id: d.id, ...d.data() }));
+    filtrarApuntes();
+  } catch (error) {
+    console.error('Error al cargar los apuntes:', error);
+    cont.innerHTML = error && error.code === 'permission-denied'
+      ? '<p class="subtitle-text center-text margin-top-sm">No hay permiso para leer los apuntes. Hay que actualizar las reglas de Firestore.</p>'
+      : '<p class="subtitle-text center-text margin-top-sm">No se pudieron cargar los apuntes. Intentá de nuevo más tarde.</p>';
+  }
+}
+
+function filtrarApuntes() {
+  const texto = (document.getElementById('notesSearch')?.value || '').toLowerCase();
+  const materia = document.getElementById('notesFilterMateria')?.value || 'all';
+  const anio = document.getElementById('notesFilterYear')?.value || 'all';
+
+  const filtrados = apuntesCache.filter(n => {
+    const coincideTexto = !texto ||
+      (n.titulo || '').toLowerCase().includes(texto) ||
+      (n.materia || '').toLowerCase().includes(texto) ||
+      (n.autorNombre || '').toLowerCase().includes(texto);
+    return coincideTexto &&
+      (materia === 'all' || n.materia === materia) &&
+      (anio === 'all' || n.anio === anio);
+  });
+
+  renderApuntes(filtrados);
+}
+
+function renderApuntes(lista) {
+  const cont = document.getElementById('notesListContainer');
+  if (!cont) return;
+  cont.innerHTML = '';
+
+  if (lista.length === 0) {
+    cont.innerHTML = '<p class="subtitle-text center-text margin-top-sm">Todavía no hay apuntes con esos criterios. ¡Sé el primero en subir uno!</p>';
+    return;
+  }
+
+  lista.forEach(n => {
+    const item = document.createElement('div');
+    item.className = 'user-item note-card';
+    item.onclick = () => abrirApunte(n.id);
+
+    const fecha = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-AR') : '';
+    const cantidad = (n.imagenes || []).length;
+
+    item.innerHTML = `
+      <div class="note-thumb"><img src="${n.miniatura || (n.imagenes || [])[0] || ''}" alt="Apunte de ${escaparHTML(n.materia)}"></div>
+      <div class="user-name">${escaparHTML(n.titulo)}</div>
+      <div class="tags-container">
+        <span class="tag">${escaparHTML(n.materia)}</span>
+        <span class="tag">${escaparHTML(n.anio)}</span>
+      </div>
+      <div class="reward-sub">Por ${escaparHTML(n.autorNombre)} · ${fecha} · ${cantidad} ${cantidad === 1 ? 'imagen' : 'imágenes'}</div>
+    `;
+    cont.appendChild(item);
+  });
+}
+
+function abrirApunte(id) {
+  const n = apuntesCache.find(x => x.id === id);
+  if (!n) return;
+  apunteAbiertoId = id;
+
+  document.getElementById('verApunteTitulo').textContent = n.titulo;
+  const fecha = n.createdAt ? new Date(n.createdAt).toLocaleDateString('es-AR') : '';
+  document.getElementById('verApunteMeta').textContent = `${n.materia} · ${n.anio} · Por ${n.autorNombre} · ${fecha}`;
+
+  const desc = document.getElementById('verApunteDesc');
+  desc.textContent = n.descripcion || '';
+  desc.style.display = n.descripcion ? 'block' : 'none';
+
+  const cont = document.getElementById('verApunteImagenes');
+  cont.innerHTML = '';
+  (n.imagenes || []).forEach((src, i) => {
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = `Apunte ${i + 1}`;
+    cont.appendChild(img);
+  });
+
+  const user = window.auth && window.auth.currentUser;
+  const btnEliminar = document.getElementById('btn-eliminar-apunte');
+  if (btnEliminar) btnEliminar.style.display = (user && user.uid === n.autorUid) ? '' : 'none';
+
+  document.getElementById('modal-apunte-ver').style.display = 'flex';
+}
+
+function cerrarModalVerApunte() {
+  const modal = document.getElementById('modal-apunte-ver');
+  if (modal) modal.style.display = 'none';
+  apunteAbiertoId = null;
+}
+
+async function eliminarApunte() {
+  const n = apuntesCache.find(x => x.id === apunteAbiertoId);
+  const user = window.auth && window.auth.currentUser;
+  if (!n || !user || user.uid !== n.autorUid) return;
+  if (!window.confirm('¿Seguro que querés eliminar este apunte?')) return;
+
+  try {
+    await window.deleteDoc(window.doc(window.db, 'apuntes', n.id));
+    cerrarModalVerApunte();
+    await cargarApuntes();
+  } catch (error) {
+    console.error('Error al eliminar el apunte:', error);
+    mostrarModalNotificacion('No se pudo eliminar', 'Intentá de nuevo en unos segundos.');
+  }
+}
+
 // CERRAR SESIÓN
 function logout() {
   const modal = document.getElementById('modal-logout');
@@ -732,6 +1125,7 @@ function cerrarModalLogout() {
 }
 
 async function confirmarLogout() {
+  try { sessionStorage.removeItem('libritos_tab'); sessionStorage.removeItem('libritos_social'); } catch (e) {}
   try {
     if (window.signOut && window.auth) {
       await window.signOut(window.auth);
@@ -829,3 +1223,15 @@ window.confirmarLogout = confirmarLogout;
 window.mostrarVista = mostrarVista;
 window.showDashboard = showDashboard;
 window.showProfileSetup = showProfileSetup;
+window.restaurarSesion = restaurarSesion;
+window.cambiarSeccionSocial = cambiarSeccionSocial;
+window.abrirModalSubirApunte = abrirModalSubirApunte;
+window.cerrarModalSubirApunte = cerrarModalSubirApunte;
+window.agregarImagenesApunte = agregarImagenesApunte;
+window.publicarApunte = publicarApunte;
+window.filtrarApuntes = filtrarApuntes;
+window.abrirApunte = abrirApunte;
+window.cerrarModalVerApunte = cerrarModalVerApunte;
+window.eliminarApunte = eliminarApunte;
+
+poblarSelectsApuntes();
